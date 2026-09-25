@@ -8,8 +8,14 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  createdAt DateTime @default(now())
+  id             Int       @id @default(autoincrement())
+  name           String?
+  mobile         String?   @unique
+  email          String?   @unique
+  passwordHash   String?
+  otpHash        String?
+  otpExpiresAt   DateTime?
+  mobileVerified Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
