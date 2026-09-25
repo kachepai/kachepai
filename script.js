@@ -1,21 +1,117 @@
-const defaultSettings={name:'কাছেপাই',slogan:'আপনার প্রয়োজন, হাতের কাছেই।',logo:'',hero:'আপনার প্রয়োজন, হাতের কাছেই।',heroText:'সহজে খুঁজুন, পছন্দ করুন, অর্ডার করুন।',payments:{'Cash on Delivery':true,'bKash':true,'Nagad':true,'Rocket':true,'Upay':true,'Card':true,'Send Money':true,'Bank':true}};
+const categories=[
+["🛒","গ্রোসারি"],["📱","ইলেকট্রনিক্স"],["👕","ফ্যাশন"],["💄","বিউটি"],["🧸","কিডস"],["🏠","হোম & লিভিং"],["🐟","ফিশ & মিট"],["🥬","ফল & সবজি"]];
 const products=[
-{id:1,name:'প্রিমিয়াম কটন টি-শার্ট',cat:'ফ্যাশন',price:450,old:600,stock:18,img:'',emoji:'👕'},
-{id:2,name:'কিচেন রাইস কুকার',cat:'ইলেকট্রনিক্স',price:1850,old:2200,stock:7,img:'',emoji:'🍚'},
-{id:3,name:'স্টিল ওয়াটার বোতল',cat:'হোম',price:380,old:450,stock:25,img:'',emoji:'🥤'},
-{id:4,name:'স্কিন কেয়ার ফেসওয়াশ',cat:'বিউটি',price:290,old:350,stock:12,img:'',emoji:'🧴'},
-{id:5,name:'শিশুদের স্কুল ব্যাগ',cat:'বাচ্চাদের',price:750,old:900,stock:9,img:'',emoji:'🎒'},
-{id:6,name:'USB LED ডেস্ক ল্যাম্প',cat:'ইলেকট্রনিক্স',price:520,old:650,stock:14,img:'',emoji:'💡'}];
-let settings=JSON.parse(localStorage.getItem('kp_settings')||'null')||defaultSettings;let cart=JSON.parse(localStorage.getItem('kp_cart')||'[]');let wish=JSON.parse(localStorage.getItem('kp_wish')||'[]');let currentCat='সব';
-function money(n){return Number(n).toLocaleString('bn-BD')}
-function init(){document.getElementById('storeName').textContent=settings.name;document.getElementById('slogan').textContent=settings.slogan;document.getElementById('heroTitle').textContent=settings.hero;document.getElementById('heroText').textContent=settings.heroText;if(settings.logo)document.getElementById('logoBox').innerHTML=`<img src="${settings.logo}" alt="logo">`;renderCats();render();updateCart();}
-function renderCats(){let cats=['সব',...new Set(products.map(p=>p.cat))];document.getElementById('cats').innerHTML=cats.map(c=>`<button onclick="currentCat='${c}';render()">${c}</button>`).join('')}
-function render(){let q=document.getElementById('search').value.toLowerCase();let a=products.filter(p=>(currentCat==='সব'||p.cat===currentCat)&&(p.name.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q)));let s=document.getElementById('sort').value;if(s==='low')a.sort((x,y)=>x.price-y.price);if(s==='high')a.sort((x,y)=>y.price-x.price);document.getElementById('products').innerHTML=a.map(p=>`<article class="card"><button class="heart" onclick="toggleWish(${p.id})">${wish.includes(p.id)?'❤️':'🤍'}</button><div class="pic">${p.img?`<img src="${p.img}">`:p.emoji}</div><h3>${p.name}</h3><div class="price">৳${money(p.price)} <span class="old">৳${money(p.old)}</span></div><div class="stock">স্টক: ${money(p.stock)} টি</div><div class="buyrow"><button class="add" onclick="add(${p.id})">🛒 কার্টে</button><button class="buy" onclick="buyNow(${p.id})">এখনই কিনুন</button></div></article>`).join('')||'<p>কোনো পণ্য পাওয়া যায়নি।</p>'}
-function saveCart(){localStorage.setItem('kp_cart',JSON.stringify(cart));updateCart()}function add(id){let x=cart.find(i=>i.id===id);if(x)x.qty++;else cart.push({id,qty:1});saveCart();openCart()}function buyNow(id){cart=[{id,qty:1}];saveCart();checkout()}
-function updateCart(){document.getElementById('cartCount').textContent=money(cart.reduce((s,i)=>s+i.qty,0));let total=0;document.getElementById('cartItems').innerHTML=cart.map(i=>{let p=products.find(x=>x.id===i.id);total+=p.price*i.qty;return `<div class="drawerItem"><div><b>${p.name}</b><br>৳${money(p.price)} × ${i.qty}</div><div><button onclick="change(${p.id},-1)">−</button> <button onclick="change(${p.id},1)">+</button></div></div>`}).join('')||'<p>কার্ট খালি।</p>';document.getElementById('total').textContent=money(total)}function change(id,d){let x=cart.find(i=>i.id===id);if(!x)return;x.qty+=d;if(x.qty<=0)cart=cart.filter(i=>i.id!==id);saveCart()}function openCart(){document.getElementById('cart').classList.add('open');document.getElementById('shade').classList.add('show')}function closeCart(){document.getElementById('cart').classList.remove('open');document.getElementById('shade').classList.remove('show')}
-function checkout(){if(!cart.length)return alert('আগে একটি পণ্য কার্টে যোগ করুন।');closeCart();let sel=document.getElementById('payment');sel.innerHTML=Object.entries(settings.payments).filter(([,v])=>v).map(([k])=>`<option>${k}</option>`).join('');updateManual();document.getElementById('payment').onchange=updateManual;checkoutDlg.showModal()}function updateManual(){let p=document.getElementById('payment').value;document.getElementById('manualPay').innerHTML=['bKash','Nagad','Rocket','Upay','Send Money'].includes(p)?'<b>ম্যানুয়াল পেমেন্ট:</b> আপনার ব্যবসার নম্বর/ব্যাংক তথ্য এখানে সেট করে দিতে হবে। টাকা পাঠানোর পর Transaction ID দিন।<label>Transaction ID<input id="trx" placeholder="যেমন: 8A7B6C"></label>':''}
-function placeOrder(e){e.preventDefault();let order={id:'KP'+Date.now(),name:document.getElementById('name').value,phone:document.getElementById('phone').value,address:document.getElementById('address').value,payment:document.getElementById('payment').value,items:cart,total:cart.reduce((s,i)=>s+products.find(p=>p.id===i.id).price*i.qty,0),time:new Date().toLocaleString()};localStorage.setItem('kp_last_order',JSON.stringify(order));cart=[];saveCart();checkoutDlg.close();alert(`অর্ডার গ্রহণ করা হয়েছে!\nঅর্ডার নম্বর: ${order.id}`)}
-function toggleWish(id){wish=wish.includes(id)?wish.filter(x=>x!==id):[...wish,id];localStorage.setItem('kp_wish',JSON.stringify(wish));render()}
-function voiceSearch(){if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window))return alert('আপনার ব্রাউজারে Voice Search সমর্থিত নয়।');let R=window.SpeechRecognition||window.webkitSpeechRecognition;let r=new R();r.lang='bn-BD';r.onresult=e=>{document.getElementById('search').value=e.results[0][0].transcript;render()};r.start()}
-function openAdmin(){['setName','setSlogan','setLogo','setHero','setHeroText'].forEach((id,i)=>document.getElementById(id).value=[settings.name,settings.slogan,settings.logo,settings.hero,settings.heroText][i]);document.getElementById('payChecks').innerHTML=Object.keys(settings.payments).map(k=>`<label><input type="checkbox" id="pay_${k}" ${settings.payments[k]?'checked':''}> ${k}</label>`).join('');adminDlg.showModal()}function saveSettings(){settings.name=document.getElementById('setName').value||defaultSettings.name;settings.slogan=document.getElementById('setSlogan').value;settings.logo=document.getElementById('setLogo').value;settings.hero=document.getElementById('setHero').value;settings.heroText=document.getElementById('setHeroText').value;Object.keys(settings.payments).forEach(k=>settings.payments[k]=document.getElementById('pay_'+k).checked);localStorage.setItem('kp_settings',JSON.stringify(settings));adminDlg.close();init()}
-document.getElementById('search').addEventListener('input',render);init();
+{id:1,name:"Premium Basmati Rice 5kg",cat:"গ্রোসারি",price:680,old:760,badge:"জনপ্রিয়",rating:"★ 4.8",img:"https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=700&q=80"},
+{id:2,name:"Wireless Bluetooth Earbuds",cat:"ইলেকট্রনিক্স",price:1290,old:1590,badge:"হট ডিল",rating:"★ 4.7",img:"https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?auto=format&fit=crop&w=700&q=80"},
+{id:3,name:"Premium Cotton Panjabi",cat:"ফ্যাশন",price:1450,old:1800,badge:"নতুন",rating:"★ 4.9",img:"https://images.unsplash.com/photo-1596755389378-c31d21fd1273?auto=format&fit=crop&w=700&q=80"},
+{id:4,name:"Daily Face Wash 100ml",cat:"বিউটি",price:390,old:450,badge:"অফার",rating:"★ 4.6",img:"https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=700&q=80"},
+{id:5,name:"Modern Ceramic Mug Set",cat:"হোম & লিভিং",price:750,old:900,badge:"জনপ্রিয়",rating:"★ 4.8",img:"https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&w=700&q=80"},
+{id:6,name:"Fresh Seasonal Vegetables",cat:"ফল & সবজি",price:220,old:260,badge:"ফ্রেশ",rating:"★ 4.7",img:"https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=700&q=80"},
+{id:7,name:"Kids Educational Building Set",cat:"কিডস",price:890,old:1100,badge:"জনপ্রিয়",rating:"★ 4.8",img:"https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=700&q=80"},
+{id:8,name:"Fresh Fish Selection 1kg",cat:"ফিশ & মিট",price:620,old:700,badge:"ফ্রেশ",rating:"★ 4.6",img:"https://images.unsplash.com/photo-1534766555764-ce878a5e3a2b?auto=format&fit=crop&w=700&q=80"},
+{id:9,name:"Smart LED Table Lamp",cat:"হোম & লিভিং",price:980,old:1250,badge:"নতুন",rating:"★ 4.7",img:"https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=700&q=80"},
+{id:10,name:"Everyday Casual Shirt",cat:"ফ্যাশন",price:990,old:1250,badge:"অফার",rating:"★ 4.5",img:"https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=700&q=80"}];
+let cart=JSON.parse(localStorage.getItem("kp_cart")||"[]");
+let wishlist=JSON.parse(localStorage.getItem("kp_wishlist")||"[]");
+
+const API_BASE = (window.KACHEPAI_API && window.KACHEPAI_API.API_BASE || "").replace(/\/$/,"");
+let kpToken = localStorage.getItem("kp_token") || "";
+
+async function apiRequest(path, options={}) {
+  if (!API_BASE) throw new Error("API_NOT_CONFIGURED");
+  const headers = {"Content-Type":"application/json", ...(options.headers||{})};
+  if (kpToken) headers.Authorization = "Bearer " + kpToken;
+  const res = await fetch(API_BASE + path, {...options, headers});
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok) throw new Error(data.error || "API request failed");
+  return data;
+}
+async function apiLogin(mobile,password){
+  const data = await apiRequest("/api/auth/login",{
+    method:"POST", body:JSON.stringify({mobile,password})
+  });
+  kpToken=data.token; localStorage.setItem("kp_token",kpToken);
+  return data;
+}
+async function apiCreateOrder(payload){
+  return apiRequest("/api/orders",{method:"POST",body:JSON.stringify(payload)});
+}
+async function apiMe(){ return apiRequest("/api/me"); }
+
+
+const money=n=>"৳"+n.toLocaleString("en-BD");
+function save(){localStorage.setItem("kp_cart",JSON.stringify(cart));localStorage.setItem("kp_wishlist",JSON.stringify(wishlist));counts()}
+function counts(){document.querySelector("#cartCount").textContent=cart.reduce((s,x)=>s+x.qty,0);document.querySelector("#wishCount").textContent=wishlist.length}
+function productCard(p){return `<article class="product"><div class="product-image"><img src="${p.img}" alt="${p.name}" loading="lazy"><span class="badge">${p.badge}</span><button class="heart" onclick="toggleWishlist(${p.id})">${wishlist.includes(p.id)?"♥":"♡"}</button></div><div class="product-info"><small>${p.cat}</small><div class="product-name">${p.name}</div><div><span class="rating">${p.rating}</span></div><div><span class="price">${money(p.price)}</span><span class="old">${money(p.old)}</span></div><button class="add" onclick="addCart(${p.id})">কার্টে যোগ করুন</button></div></article>`}
+function renderProducts(list){document.querySelector("#productsGrid").innerHTML=list.length?list.map(productCard).join(""):`<div class="empty">কোনো পণ্য পাওয়া যায়নি।</div>`}
+function renderExtra(){document.querySelector("#popularGrid").innerHTML=products.slice(0,5).map(productCard).join("");document.querySelector("#newGrid").innerHTML=products.filter(p=>p.badge==="নতুন").map(productCard).join("")}
+function renderCategories(){document.querySelector("#categoriesGrid").innerHTML=categories.map(c=>`<button class="category" onclick="filterCategory('${c[1]}')"><span class="cat-icon">${c[0]}</span><b>${c[1]}</b></button>`).join("")}
+function addCart(id){const x=cart.find(x=>x.id===id);x?x.qty++:cart.push({id,qty:1});save();toast("পণ্যটি কার্টে যোগ হয়েছে");openPanel("cart")}
+function toggleWishlist(id){wishlist.includes(id)?wishlist=wishlist.filter(x=>x!==id):wishlist.push(id);save();renderProducts(products)}
+function filterCategory(cat){renderProducts(products.filter(p=>p.cat===cat));scrollToSection("featured")}
+function filterProducts(type){renderProducts(type==="offer"?products.filter(p=>p.badge==="অফার"||p.old>p.price*1.15):products);scrollToSection("featured")}
+function search(){const q=document.querySelector("#search").value.trim().toLowerCase();renderProducts(products.filter(p=>(p.name+" "+p.cat).toLowerCase().includes(q)));scrollToSection("featured")}
+function scrollToSection(id){document.getElementById(id).scrollIntoView({behavior:"smooth"})}
+document.querySelector("#searchBtn").onclick=search;
+document.querySelector("#search").onkeydown=e=>{if(e.key==="Enter")search()};
+
+function openPanel(type){
+ let html=`<button class="panel-close" onclick="closePanel()">×</button>`;
+ if(type==="cart")html+=cartHTML();
+ if(type==="wishlist")html+=wishlistHTML();
+ if(type==="account")html+=accountHTML();
+ document.querySelector("#panel").innerHTML=html;document.querySelector("#overlay").style.display="block";
+}
+function cartHTML(){
+ if(!cart.length)return `<h2>আপনার কার্ট</h2><div class="empty">কার্ট এখন খালি।<br><br>পছন্দের পণ্য কার্টে যোগ করুন।</div>`;
+ const rows=cart.map(x=>{const p=products.find(p=>p.id===x.id);return `<div class="cart-item"><img src="${p.img}"><div class="grow"><b>${p.name}</b><div>${money(p.price)}</div><div class="qty"><button onclick="changeQty(${p.id},-1)">−</button>${x.qty}<button onclick="changeQty(${p.id},1)">+</button></div></div><button onclick="removeCart(${p.id})">×</button></div>`}).join("");
+ const total=cart.reduce((s,x)=>s+products.find(p=>p.id===x.id).price*x.qty,0);
+ return `<h2>আপনার কার্ট</h2>${rows}<div class="panel-total"><span>মোট</span><span>${money(total)}</span></div><button class="full" onclick="checkout()">Checkout →</button>`;
+}
+function wishlistHTML(){
+ const list=products.filter(p=>wishlist.includes(p.id));
+ return `<h2>Wishlist</h2>${list.length?list.map(p=>`<div class="wish-item"><img src="${p.img}"><div class="grow"><b>${p.name}</b><div>${money(p.price)}</div><button class="add" onclick="addCart(${p.id})">কার্টে যোগ করুন</button></div></div>`).join(""):"<div class='empty'>আপনার Wishlist এখন খালি।</div>"}`;
+}
+function accountHTML(){
+return `<h2>Customer Account</h2>
+<div class="field"><label>মোবাইল নম্বর</label><input id="loginMobile" placeholder="01XXXXXXXXX"></div>
+<div class="field"><label>পাসওয়ার্ড</label><input id="loginPassword" type="password" placeholder="পাসওয়ার্ড"></div>
+<button class="full" onclick="loginCustomer()">Login</button>
+<p style="color:#718078;font-size:13px;margin-top:20px">বাস্তব backend যুক্ত হলে customer authentication এখানে কাজ করবে।</p>`;
+}
+async function loginCustomer(){
+ const mobile=document.querySelector("#loginMobile").value.trim();
+ const password=document.querySelector("#loginPassword").value;
+ if(!mobile||!password){toast("মোবাইল ও পাসওয়ার্ড দিন");return}
+ try{
+   if(!API_BASE){toast("Backend URL এখনো সেট করা হয়নি");return}
+   const result=await apiLogin(mobile,password);
+   document.querySelector("#panel").innerHTML=`<button class="panel-close" onclick="closePanel()">×</button><h2>স্বাগতম, ${result.user.name}</h2><p>আপনার account সফলভাবে login হয়েছে।</p><button class="full" onclick="closePanel()">ঠিক আছে</button>`;
+ }catch(e){toast(e.message==="API_NOT_CONFIGURED"?"Backend URL সেট করুন":"Login failed")}
+}
+function checkout(){const total=cart.reduce((s,x)=>s+products.find(p=>p.id===x.id).price*x.qty,0);document.querySelector("#panel").innerHTML=`<button class="panel-close" onclick="openPanel('cart')">←</button><h2>Checkout</h2><div class="field"><label>নাম</label><input id="coName" placeholder="আপনার নাম"></div><div class="field"><label>মোবাইল</label><input id="coMobile" placeholder="01XXXXXXXXX"></div><div class="field"><label>ডেলিভারি ঠিকানা</label><textarea id="coAddress" rows="3" placeholder="বাসা/রোড/এলাকা"></textarea></div><div class="field"><label>Payment Method</label><select><option>Cash on Delivery</option><option>Online Payment (পরে যুক্ত হবে)</option></select></div><div class="panel-total"><span>Product Total</span><span>${money(total)}</span></div><button class="full" onclick="placeDemoOrder()">Order Confirm</button>`}
+async function placeDemoOrder(){
+ const name=document.querySelector("#coName").value.trim(),mobile=document.querySelector("#coMobile").value.trim(),address=document.querySelector("#coAddress").value.trim();
+ if(!name||!mobile||!address){toast("নাম, মোবাইল ও ঠিকানা দিন");return}
+ const items=cart.map(x=>({productId:x.id,quantity:x.qty}));
+ const total=cart.reduce((s,x)=>s+products.find(p=>p.id===x.id).price*x.qty,0);
+ if(API_BASE && kpToken){
+   try{
+     const result=await apiCreateOrder({customerName:name,mobile,address,paymentMethod:"COD",items});
+     cart=[];save();
+     document.querySelector("#panel").innerHTML=`<button class="panel-close" onclick="closePanel()">×</button><h2>অর্ডার গ্রহণ করা হয়েছে ✓</h2><p>Order ID:</p><h2>${result.orderId||result.id}</h2><p style="color:#718078">আপনার অর্ডার backend-এ সংরক্ষিত হয়েছে।</p><button class="full" onclick="closePanel()">ঠিক আছে</button>`;
+     return;
+   }catch(e){toast("Server order তৈরি হয়নি");return}
+ }
+ const order="KP-"+Math.floor(10000+Math.random()*89999);
+ localStorage.setItem("kp_last_order",JSON.stringify({order,name,mobile,address,items:cart,date:new Date().toISOString()}));
+ cart=[];save();
+ document.querySelector("#panel").innerHTML=`<button class="panel-close" onclick="closePanel()">×</button><h2>Demo Order ✓</h2><p>Order ID:</p><h2>${order}</h2><p style="color:#718078">Backend connect করলে এটি বাস্তব order হবে।</p><button class="full" onclick="closePanel()">ঠিক আছে</button>`;
+}
+function changeQty(id,d){const x=cart.find(x=>x.id===id);x.qty+=d;if(x.qty<=0)cart=cart.filter(x=>x.id!==id);save();openPanel("cart")}
+function removeCart(id){cart=cart.filter(x=>x.id!==id);save();openPanel("cart")}
+function closePanel(){document.querySelector("#overlay").style.display="none"}
+function overlayClose(e){if(e.target.id==="overlay")closePanel()}
+function toast(t){const el=document.querySelector("#toast");el.textContent=t;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),1800)}
+
+renderCategories();renderProducts(products);renderExtra();counts();

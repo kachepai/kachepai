@@ -1,1 +1,88 @@
-<!doctype html><html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>কাছেপাই | KachePai</title><link rel="stylesheet" href="style.css"></head><body><header><div class="top"><div class="brand"><div class="logo" id="logoBox">🛍️</div><div><b id="storeName">কাছেপাই</b><small id="slogan">আপনার প্রয়োজন, হাতের কাছেই।</small></div></div><div class="search"><input id="search" placeholder="🔎 কী খুঁজছেন? যেমন: শার্ট, চাল, মোবাইল..."><button onclick="voiceSearch()">🎙️</button></div><button class="cartBtn" onclick="openCart()">🛒 কার্ট <span id="cartCount">0</span></button></div><nav id="cats"></nav></header><main><section class="hero"><div><h1 id="heroTitle">আপনার প্রয়োজন, হাতের কাছেই।</h1><p id="heroText">সহজে খুঁজুন, পছন্দ করুন, অর্ডার করুন।</p><button onclick="document.getElementById('products').scrollIntoView({behavior:'smooth'})">🛒 এখনই কেনাকাটা করুন</button></div><div class="steps"><b>কীভাবে কিনবেন?</b><span>1️⃣ পণ্য বাছুন</span><span>2️⃣ এখনই কিনুন</span><span>3️⃣ ঠিকানা ও পেমেন্ট দিন</span></div></section><section class="toolbar"><h2>জনপ্রিয় পণ্য</h2><select id="sort" onchange="render()"><option value="default">সাজানো: সাধারণ</option><option value="low">দাম: কম থেকে বেশি</option><option value="high">দাম: বেশি থেকে কম</option></select></section><section id="products" class="grid"></section></main><div id="cart" class="drawer"><div class="drawerHead"><h2>🛒 আপনার কার্ট</h2><button onclick="closeCart()">✕</button></div><div id="cartItems"></div><div class="total">মোট: ৳<span id="total">0</span></div><button class="primary" onclick="checkout()">অর্ডার করুন</button></div><div id="shade" onclick="closeCart()"></div><dialog id="checkoutDlg"><form method="dialog" onsubmit="placeOrder(event)"><h2>📦 অর্ডার সম্পন্ন করুন</h2><label>নাম<input id="name" required></label><label>মোবাইল নম্বর<input id="phone" inputmode="tel" required></label><label>ঠিকানা<textarea id="address" required></textarea></label><label>পেমেন্ট পদ্ধতি<select id="payment"></select></label><div id="manualPay" class="manual"></div><p class="safe">⚠️ PIN, OTP বা CVV কখনো এখানে লিখবেন না।</p><div class="actions"><button type="button" onclick="checkoutDlg.close()">বাতিল</button><button class="primary">অর্ডার নিশ্চিত করুন</button></div></form></dialog><dialog id="adminDlg"><form method="dialog"><h2>⚙️ KachePai সেটিংস</h2><p>এটি ব্রাউজার-ভিত্তিক ডেমো অ্যাডমিন। বাস্তব নিরাপত্তার জন্য backend প্রয়োজন।</p><label>দোকানের নাম<input id="setName"></label><label>স্লোগান<input id="setSlogan"></label><label>Logo URL<input id="setLogo" placeholder="https://..."></label><label>Hero শিরোনাম<input id="setHero"></label><label>Hero লেখা<input id="setHeroText"></label><h3>পেমেন্ট চালু/বন্ধ</h3><div id="payChecks"></div><div class="actions"><button type="button" onclick="adminDlg.close()">বন্ধ</button><button class="primary" onclick="saveSettings()">সেভ</button></div></form></dialog><button class="admin" onclick="openAdmin()">⚙️</button><footer><b>কাছেপাই | KachePai</b><p>আপনার প্রয়োজন, হাতের কাছেই।</p><small>ডেমো ওয়েবসাইট — বাস্তব অনলাইন পেমেন্টের জন্য নিরাপদ backend ও official payment gateway/API সংযোগ করতে হবে।</small></footer><script src="script.js"></script></body></html>
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KachePai | কাছেপাই</title>
+<meta name="description" content="KachePai — দৈনন্দিন কেনাকাটার সহজ marketplace">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topnote">🚚 ৳১,০০০+ অর্ডারে নির্বাচিত এলাকায় Free Delivery</div>
+
+<header>
+  <div class="header-main">
+    <a class="brand" href="#"><span class="logo">ক</span><span><strong>KachePai</strong><small>কাছেপাই</small></span></a>
+    <div class="search"><span>⌕</span><input id="search" placeholder="পণ্য খুঁজুন..." autocomplete="off"><button id="searchBtn">খুঁজুন</button></div>
+    <div class="header-actions">
+      <button onclick="openPanel('wishlist')">♡ <b id="wishCount">0</b></button>
+      <button onclick="openPanel('cart')">🛒 <b id="cartCount">0</b></button>
+      <button class="login" onclick="openPanel('account')">অ্যাকাউন্ট</button>
+    </div>
+  </div>
+  <nav>
+    <button onclick="scrollToSection('categories')">☰ সব ক্যাটাগরি</button>
+    <a href="#offers">অফার</a><a href="#featured">ফিচার্ড</a><a href="#popular">জনপ্রিয়</a><a href="#new">নতুন</a>
+  </nav>
+</header>
+
+<main>
+<section class="hero">
+  <div class="hero-copy">
+    <span class="eyebrow">KACHEPAI SPECIAL</span>
+    <h1>দরকারি সবকিছু,<br><em>কাছেই পাই।</em></h1>
+    <p>গ্রোসারি থেকে ফ্যাশন, ইলেকট্রনিক্স থেকে ঘরের প্রয়োজন—সহজে খুঁজুন, কার্টে নিন, অর্ডার করুন।</p>
+    <div class="hero-buttons"><button class="primary" onclick="scrollToSection('featured')">কেনাকাটা শুরু করুন</button><button class="ghost" onclick="filterProducts('offer')">অফার দেখুন</button></div>
+  </div>
+  <div class="hero-art"><div class="sale">SAVE<br><strong>20%</strong><br><small>SELECTED ITEMS</small></div><div class="circle c1"></div><div class="circle c2"></div></div>
+</section>
+
+<section class="quick">
+  <div>🚚 <strong>সহজ ডেলিভারি</strong><span>এলাকাভেদে চার্জ</span></div>
+  <div>🔒 <strong>নিরাপদ checkout</strong><span>স্বচ্ছ মূল্য</span></div>
+  <div>↩️ <strong>Return support</strong><span>নীতিমালা অনুযায়ী</span></div>
+  <div>⭐ <strong>বিশ্বস্ত পণ্য</strong><span>Verified review সুবিধা</span></div>
+</section>
+
+<section id="categories" class="section">
+  <div class="section-title"><div><h2>ক্যাটাগরি</h2><p>আপনার প্রয়োজনের জিনিস দ্রুত খুঁজে নিন</p></div></div>
+  <div id="categoriesGrid" class="categories"></div>
+</section>
+
+<section id="offers" class="section">
+  <div class="offer">
+    <div><span>WEEKEND OFFER</span><h2>Buy 2 Get 1 Free</h2><p>নির্বাচিত পণ্যে প্রযোজ্য • শর্ত প্রযোজ্য</p></div>
+    <button onclick="filterProducts('offer')">অফার পণ্য →</button>
+  </div>
+</section>
+
+<section id="featured" class="section">
+  <div class="section-title"><div><h2>ফিচার্ড পণ্য</h2><p>আজকের নির্বাচিত পণ্য</p></div><button class="link" onclick="renderProducts(products)">সব দেখুন →</button></div>
+  <div id="productsGrid" class="products"></div>
+</section>
+
+<section id="popular" class="section">
+  <div class="section-title"><div><h2>জনপ্রিয়</h2><p>গ্রাহকদের পছন্দের কিছু পণ্য</p></div></div>
+  <div id="popularGrid" class="products"></div>
+</section>
+
+<section id="new" class="section">
+  <div class="section-title"><div><h2>নতুন পণ্য</h2><p>সদ্য যোগ হওয়া পণ্য</p></div></div>
+  <div id="newGrid" class="products"></div>
+</section>
+</main>
+
+<footer>
+  <div class="footer-brand"><span class="logo">ক</span><div><strong>KachePai</strong><small>কাছেপাই</small></div></div>
+  <div><h4>কেনাকাটা</h4><a>সব পণ্য</a><a>অফার</a><a>ক্যাটাগরি</a></div>
+  <div><h4>সাহায্য</h4><a>যোগাযোগ</a><a>ডেলিভারি</a><a>রিটার্ন</a></div>
+  <div><h4>আমাদের সম্পর্কে</h4><a>কাছেপাই</a><a>Privacy</a><a>Terms</a></div>
+</footer>
+
+<div id="overlay" class="overlay" onclick="overlayClose(event)">
+  <aside id="panel" class="panel"></aside>
+</div>
+<div id="toast" class="toast"></div>
+<script src="api-config.js"></script><script src="script.js"></script>
+</body>
+</html>
