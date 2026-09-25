@@ -221,6 +221,12 @@ function wishlistHTML(){
 }
 
 function accountHTML(){
+  if(kpToken){
+    return `<h2>Customer Account</h2>
+      <p>আপনি সফলভাবে Login অবস্থায় আছেন।</p>
+      <button class="full" onclick="logoutCustomer()">Logout</button>`;
+  }
+
   return `<h2>Customer Account</h2>
 
   <h3 style="margin-top:20px">নতুন Customer?</h3>
