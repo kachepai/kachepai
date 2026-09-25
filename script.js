@@ -474,3 +474,8 @@ renderCategories();
 renderProducts(products);
 renderExtra();
 counts();
+function logoutCustomer(){
+  kpToken = "";
+  localStorage.removeItem("kp_token");
+  location.reload();
+}
