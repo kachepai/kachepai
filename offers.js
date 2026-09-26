@@ -943,7 +943,12 @@ async function() {
     );
     return;
   }
-
+if (!/^01\d{9}$/.test(mobile)) {
+  toast(
+    "সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন। নম্বরটি 01 দিয়ে শুরু হতে হবে।"
+  );
+  return;
+}
   if (!cart.length) {
     toast("কার্ট খালি");
     return;
