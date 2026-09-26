@@ -38,7 +38,7 @@ const kpOffers = [
     discountPercent: 10,
 
     categories: [],
-    productIds: [],
+    productIds: [1, 2, 5],
 
     priority: 10,
     homepage: true,
