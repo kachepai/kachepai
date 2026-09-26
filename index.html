@@ -7,94 +7,442 @@
 <meta name="description" content="KachePai — দৈনন্দিন কেনাকাটার সহজ marketplace">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
-<div class="topnote">🚚 ৳১,০০০+ অর্ডারে নির্বাচিত এলাকায় Free Delivery</div>
 
+<body>
+
+<!-- TOP NOTICE -->
+<div class="topnote">
+  🚚 ৳১,০০০+ অর্ডারে নির্বাচিত এলাকায় Free Delivery
+</div>
+
+<!-- HEADER -->
 <header>
+
   <div class="header-main">
-    <a class="brand" href="#"><span class="logo">ক</span><span><strong>KachePai</strong><small>কাছেপাই</small></span></a>
-    <div class="search"><span>⌕</span><input id="search" placeholder="পণ্য খুঁজুন..." autocomplete="off"><button id="searchBtn">খুঁজুন</button></div>
-    <div class="header-actions">
-      <button onclick="openPanel('wishlist')">♡ <b id="wishCount">0</b></button>
-      <button onclick="openPanel('cart')">🛒 <b id="cartCount">0</b></button>
-      <button class="login" onclick="openPanel('account')">অ্যাকাউন্ট</button>
+
+    <a class="brand" href="#">
+      <span class="logo">ক</span>
+      <span>
+        <strong>KachePai</strong>
+        <small>কাছেপাই</small>
+      </span>
+    </a>
+
+    <div class="search">
+      <span>⌕</span>
+      <input
+        id="search"
+        type="search"
+        placeholder="পণ্য খুঁজুন..."
+        autocomplete="off"
+      >
+      <button id="searchBtn">খুঁজুন</button>
     </div>
+
+    <div class="header-actions">
+
+      <button
+        type="button"
+        onclick="openPanel('wishlist')"
+        aria-label="Wishlist"
+      >
+        ♡
+        <b id="wishCount">0</b>
+      </button>
+
+      <button
+        type="button"
+        onclick="openPanel('cart')"
+        aria-label="Cart"
+      >
+        🛒
+        <b id="cartCount">0</b>
+      </button>
+
+      <button
+        type="button"
+        class="login"
+        onclick="openPanel('account')"
+      >
+        অ্যাকাউন্ট
+      </button>
+
+    </div>
+
   </div>
+
   <nav>
-    <button onclick="scrollToSection('categories')">☰ সব ক্যাটাগরি</button>
-    <a href="#offers">অফার</a><a href="#featured">ফিচার্ড</a><a href="#popular">জনপ্রিয়</a><a href="#new">নতুন</a>
+
+    <button
+      type="button"
+      onclick="scrollToSection('categories')"
+    >
+      ☰ সব ক্যাটাগরি
+    </button>
+
+    <a href="#offers">অফার</a>
+    <a href="#featured">ফিচার্ড</a>
+    <a href="#popular">জনপ্রিয়</a>
+    <a href="#new">নতুন</a>
+
   </nav>
+
 </header>
 
+
+<!-- MAIN -->
 <main>
-<section class="hero">
-  <div class="hero-copy">
-    <span class="eyebrow">KACHEPAI SPECIAL</span>
-    <h1>দরকারি সবকিছু,<br><em>কাছেই পাই।</em></h1>
-    <p>গ্রোসারি থেকে ফ্যাশন, ইলেকট্রনিক্স থেকে ঘরের প্রয়োজন—সহজে খুঁজুন, কার্টে নিন, অর্ডার করুন।</p>
-    <div class="hero-buttons"><button class="primary" onclick="scrollToSection('featured')">কেনাকাটা শুরু করুন</button><button class="ghost" onclick="filterProducts('offer')">অফার দেখুন</button></div>
-  </div>
-  <div class="hero-art"><div class="sale">SAVE<br><strong>20%</strong><br><small>SELECTED ITEMS</small></div><div class="circle c1"></div><div class="circle c2"></div></div>
-</section>
 
-<section class="quick">
-  <div>🚚 <strong>সহজ ডেলিভারি</strong><span>এলাকাভেদে চার্জ</span></div>
-  <div>🔒 <strong>নিরাপদ checkout</strong><span>স্বচ্ছ মূল্য</span></div>
-  <div>↩️ <strong>Return support</strong><span>নীতিমালা অনুযায়ী</span></div>
-  <div>⭐ <strong>বিশ্বস্ত পণ্য</strong><span>Verified review সুবিধা</span></div>
-</section>
+  <!-- HERO -->
+  <section class="hero">
 
-<section id="categories" class="section">
-  <div class="section-title"><div><h2>ক্যাটাগরি</h2><p>আপনার প্রয়োজনের জিনিস দ্রুত খুঁজে নিন</p></div></div>
-  <div id="categoriesGrid" class="categories"></div>
-</section>
+    <div class="hero-copy">
 
-<section id="offers" class="section">
+      <span class="eyebrow">
+        KACHEPAI SPECIAL
+      </span>
 
-  <div id="homeOfferBanner"></div>
+      <h1>
+        দরকারি সবকিছু,<br>
+        <em>কাছেই পাই।</em>
+      </h1>
 
-  <div class="section-title">
-    <div>
-      <h2>চলমান অফার</h2>
-      <p>যে অফারগুলো এখন চলছে</p>
+      <p>
+        গ্রোসারি থেকে ফ্যাশন, ইলেকট্রনিক্স থেকে ঘরের প্রয়োজন—
+        সহজে খুঁজুন, কার্টে নিন, অর্ডার করুন।
+      </p>
+
+      <div class="hero-buttons">
+
+        <button
+          type="button"
+          class="primary"
+          onclick="scrollToSection('featured')"
+        >
+          কেনাকাটা শুরু করুন →
+        </button>
+
+        <button
+          type="button"
+          class="ghost"
+          onclick="filterProducts('offer')"
+        >
+          অফার দেখুন
+        </button>
+
+      </div>
+
     </div>
-  </div>
 
-  <div id="dynamicOffers"></div>
+    <div class="hero-art">
 
-  <div id="upcomingOffers"></div>
+      <div class="hero-shopping-art">
+        🛒
+      </div>
 
-</section>
+      <div class="sale">
+        SAVE
+        <strong>20%</strong>
+        <small>SELECTED ITEMS</small>
+      </div>
 
-<section id="featured" class="section">
-  <div class="section-title"><div><h2>ফিচার্ড পণ্য</h2><p>আজকের নির্বাচিত পণ্য</p></div><button class="link" onclick="renderProducts(products)">সব দেখুন →</button></div>
-  <div id="productsGrid" class="products"></div>
-</section>
+      <div class="circle c1"></div>
+      <div class="circle c2"></div>
 
-<section id="popular" class="section">
-  <div class="section-title"><div><h2>জনপ্রিয়</h2><p>গ্রাহকদের পছন্দের কিছু পণ্য</p></div></div>
-  <div id="popularGrid" class="products"></div>
-</section>
+    </div>
 
-<section id="new" class="section">
-  <div class="section-title"><div><h2>নতুন পণ্য</h2><p>সদ্য যোগ হওয়া পণ্য</p></div></div>
-  <div id="newGrid" class="products"></div>
-</section>
+  </section>
+
+
+  <!-- QUICK BENEFITS -->
+  <section class="quick">
+
+    <div>
+      <span class="quick-icon">🚚</span>
+      <strong>সহজ ডেলিভারি</strong>
+      <span>এলাকাভেদে চার্জ</span>
+    </div>
+
+    <div>
+      <span class="quick-icon">🔒</span>
+      <strong>নিরাপদ checkout</strong>
+      <span>স্বচ্ছ মূল্য</span>
+    </div>
+
+    <div>
+      <span class="quick-icon">↩️</span>
+      <strong>Return support</strong>
+      <span>নীতিমালা অনুযায়ী</span>
+    </div>
+
+    <div>
+      <span class="quick-icon">⭐</span>
+      <strong>বিশ্বস্ত পণ্য</strong>
+      <span>Verified review সুবিধা</span>
+    </div>
+
+  </section>
+
+
+  <!-- CATEGORIES -->
+  <section id="categories" class="section">
+
+    <div class="section-title">
+
+      <div>
+        <h2>ক্যাটাগরি</h2>
+        <p>
+          আপনার প্রয়োজনের জিনিস দ্রুত খুঁজে নিন
+        </p>
+      </div>
+
+    </div>
+
+    <div
+      id="categoriesGrid"
+      class="categories"
+    ></div>
+
+  </section>
+
+
+  <!-- OFFERS -->
+  <section id="offers" class="section">
+
+    <div id="homeOfferBanner"></div>
+
+    <div class="section-title">
+
+      <div>
+        <h2>চলমান অফার</h2>
+        <p>
+          যে অফারগুলো এখন চলছে
+        </p>
+      </div>
+
+    </div>
+
+    <div id="dynamicOffers"></div>
+
+    <div id="upcomingOffers"></div>
+
+  </section>
+
+
+  <!-- FEATURED / FLASH SALE -->
+  <section id="featured" class="section">
+
+    <div class="section-title">
+
+      <div>
+        <h2>⚡ আজকের ডিল / ফ্ল্যাশ সেল</h2>
+        <p>
+          সীমিত সময়ের জন্য বিশেষ ছাড়
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="link"
+        onclick="renderProducts(products)"
+      >
+        সব দেখুন →
+      </button>
+
+    </div>
+
+    <div
+      id="productsGrid"
+      class="products"
+    ></div>
+
+  </section>
+
+
+  <!-- POPULAR -->
+  <section id="popular" class="section">
+
+    <div class="section-title">
+
+      <div>
+        <h2>🔥 জনপ্রিয় পণ্য</h2>
+        <p>
+          গ্রাহকদের সবচেয়ে বেশি পছন্দের পণ্য
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="link"
+        onclick="renderProducts(products)"
+      >
+        সব দেখুন →
+      </button>
+
+    </div>
+
+    <div
+      id="popularGrid"
+      class="products"
+    ></div>
+
+  </section>
+
+
+  <!-- NEW -->
+  <section id="new" class="section">
+
+    <div class="section-title">
+
+      <div>
+        <h2>☆ নতুন পণ্য</h2>
+        <p>
+          সদ্য যোগ হওয়া পণ্য
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="link"
+        onclick="renderProducts(products)"
+      >
+        সব দেখুন →
+      </button>
+
+    </div>
+
+    <div
+      id="newGrid"
+      class="products"
+    ></div>
+
+  </section>
+
+
+  <!-- ALL PRODUCTS -->
+  <section id="all-products" class="section">
+
+    <div class="section-title">
+
+      <div>
+        <h2>সব পণ্য</h2>
+        <p>
+          KachePai-তে পাওয়া সব পণ্য
+        </p>
+      </div>
+
+    </div>
+
+    <div
+      id="allProductsGrid"
+      class="products"
+    ></div>
+
+  </section>
+
 </main>
 
+
+<!-- FOOTER -->
 <footer>
-  <div class="footer-brand"><span class="logo">ক</span><div><strong>KachePai</strong><small>কাছেপাই</small></div></div>
-  <div><h4>কেনাকাটা</h4><a>সব পণ্য</a><a>অফার</a><a>ক্যাটাগরি</a></div>
-  <div><h4>সাহায্য</h4><a>যোগাযোগ</a><a>ডেলিভারি</a><a>রিটার্ন</a></div>
-  <div><h4>আমাদের সম্পর্কে</h4><a>কাছেপাই</a><a>Privacy</a><a>Terms</a></div>
+
+  <div class="footer-brand">
+
+    <span class="logo">ক</span>
+
+    <div>
+      <strong>KachePai</strong>
+      <small>কাছেপাই</small>
+    </div>
+
+  </div>
+
+
+  <div>
+
+    <h4>কেনাকাটা</h4>
+
+    <a href="#all-products">
+      সব পণ্য
+    </a>
+
+    <a href="#offers">
+      অফার
+    </a>
+
+    <a href="#categories">
+      ক্যাটাগরি
+    </a>
+
+  </div>
+
+
+  <div>
+
+    <h4>সাহায্য</h4>
+
+    <a href="#">
+      যোগাযোগ
+    </a>
+
+    <a href="#">
+      ডেলিভারি
+    </a>
+
+    <a href="#">
+      রিটার্ন
+    </a>
+
+  </div>
+
+
+  <div>
+
+    <h4>আমাদের সম্পর্কে</h4>
+
+    <a href="#">
+      কাছেপাই
+    </a>
+
+    <a href="#">
+      Privacy
+    </a>
+
+    <a href="#">
+      Terms
+    </a>
+
+  </div>
+
 </footer>
 
-<div id="overlay" class="overlay" onclick="overlayClose(event)">
-  <aside id="panel" class="panel"></aside>
+
+<!-- OVERLAY / ACCOUNT / CART / WISHLIST -->
+<div
+  id="overlay"
+  class="overlay"
+  onclick="overlayClose(event)"
+>
+
+  <aside
+    id="panel"
+    class="panel"
+  ></aside>
+
 </div>
-<div id="toast" class="toast"></div>
+
+
+<!-- TOAST -->
+<div
+  id="toast"
+  class="toast"
+></div>
+
+
+<!-- SCRIPTS -->
 <script src="api-config.js"></script>
 <script src="script.js"></script>
 <script src="offers.js?v=2"></script>
+
 </body>
 </html>
