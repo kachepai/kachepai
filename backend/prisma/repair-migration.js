@@ -6,55 +6,19 @@ async function repairFailedMigration() {
   const migrationName = "003_marketplace_core";
 
   try {
-    const rows = await prisma.$queryRawUnsafe(
+    const result = await prisma.$executeRawUnsafe(
       `
-      SELECT
-        "id",
-        "migration_name",
-        "finished_at",
-        "rolled_back_at"
-      FROM "_prisma_migrations"
+      UPDATE "_prisma_migrations"
+      SET "rolled_back_at" = CURRENT_TIMESTAMP
       WHERE "migration_name" = $1
-      ORDER BY "started_at" DESC
-      LIMIT 1
+        AND "finished_at" IS NULL
+        AND "rolled_back_at" IS NULL
       `,
       migrationName
     );
 
-    if (!rows.length) {
-      console.log(`Migration ${migrationName} not found. Nothing to repair.`);
-      return;
-    }
-
-    const migration = rows[0];
-
-    if (migration.finished_at) {
-      console.log(
-        `Migration ${migrationName} is already successful. Nothing to repair.`
-      );
-      return;
-    }
-
-    if (migration.rolled_back_at) {
-      console.log(
-        `Migration ${migrationName} is already marked as rolled back.`
-      );
-      return;
-    }
-
-    await prisma.$executeRawUnsafe(
-      `
-      UPDATE "_prisma_migrations"
-      SET "rolled_back_at" = CURRENT_TIMESTAMP
-      WHERE "id" = $1
-        AND "finished_at" IS NULL
-        AND "rolled_back_at" IS NULL
-      `,
-      migration.id
-    );
-
     console.log(
-      `Migration ${migrationName} was marked as rolled back successfully.`
+      `Migration ${migrationName}: ${result} failed record(s) marked as rolled back.`
     );
   } catch (error) {
     console.error("Migration repair failed:", error);
