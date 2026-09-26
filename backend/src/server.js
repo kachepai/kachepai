@@ -1706,3 +1706,91 @@ app.post(
             error:
               "Cross-department permission delegation is not allowed"
           });
+}
+      }
+
+      const userPermission =
+        await prisma.userPermission.upsert({
+          where: {
+            userId_permissionId: {
+              userId: targetId,
+              permissionId:
+                Number(permissionId)
+            }
+          },
+          update: {
+            allowed:
+              Boolean(allowed),
+            grantedById:
+              req.user.id
+          },
+          create: {
+            userId:
+              targetId,
+            permissionId:
+              Number(permissionId),
+            allowed:
+              Boolean(allowed),
+            grantedById:
+              req.user.id
+          },
+          include: {
+            permission: true,
+            grantedBy: {
+              select: {
+                id: true,
+                name: true,
+                mobile: true
+              }
+            }
+          }
+        });
+
+      await writeAuditLog({
+        actorId:
+          req.user.id,
+        targetUserId:
+          targetId,
+        action:
+          "USER_PERMISSION_UPDATED",
+        details: {
+          permissionId:
+            Number(permissionId),
+          permissionKey:
+            permission.key,
+          allowed:
+            Boolean(allowed)
+        }
+      });
+
+      res.status(201).json({
+        userPermission
+      });
+
+    } catch (error) {
+
+      console.error(
+        "USER PERMISSION ERROR:",
+        error
+      );
+
+      res.status(500).json({
+        error:
+          "Could not update user permission"
+      });
+    }
+  }
+);
+
+/* ======================================================
+   SERVER
+====================================================== */
+
+app.listen(
+  PORT,
+  () => {
+    console.log(
+      `Kachepai Backend is running on port ${PORT}`
+    );
+  }
+);
