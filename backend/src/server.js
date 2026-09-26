@@ -468,7 +468,114 @@ app.post(
     }
   }
 );
+/* ======================================================
+   UPDATE ORDER STATUS
+====================================================== */
 
+app.patch(
+  "/api/orders/:id/status",
+  async (req, res) => {
+
+    try {
+
+      const adminKey =
+        req.headers["x-admin-key"];
+
+      if (
+        !process.env.ADMIN_KEY ||
+        adminKey !== process.env.ADMIN_KEY
+      ) {
+        return res.status(403).json({
+          error: "Admin access required"
+        });
+      }
+
+      const orderId =
+        Number(req.params.id);
+
+      const { status } =
+        req.body;
+
+      const allowedStatuses = [
+        "PENDING",
+        "CONFIRMED",
+        "PROCESSING",
+        "SHIPPED",
+        "DELIVERED",
+        "CANCELLED"
+      ];
+
+      if (
+        !Number.isInteger(orderId) ||
+        orderId <= 0
+      ) {
+        return res.status(400).json({
+          error: "Invalid order ID"
+        });
+      }
+
+      if (
+        !allowedStatuses.includes(status)
+      ) {
+        return res.status(400).json({
+          error: "Invalid order status"
+        });
+      }
+
+      await ensureOrdersTable();
+
+      const result =
+        await prisma.$queryRaw`
+          UPDATE "Order"
+          SET "status" = ${status}
+          WHERE "id" = ${orderId}
+          RETURNING
+            "id",
+            "total",
+            "status",
+            "createdAt"
+        `;
+
+      if (!result.length) {
+        return res.status(404).json({
+          error: "Order not found"
+        });
+      }
+
+      const order =
+        result[0];
+
+      res.json({
+        message:
+          "Order status updated successfully",
+
+        id:
+          order.id,
+
+        status:
+          order.status,
+
+        total:
+          Number(order.total),
+
+        createdAt:
+          order.createdAt
+      });
+
+    } catch (error) {
+
+      console.error(
+        "ORDER STATUS ERROR:",
+        error
+      );
+
+      res.status(500).json({
+        error:
+          "Could not update order status"
+      });
+    }
+  }
+);
 /* ======================================================
    START SERVER
 ====================================================== */
