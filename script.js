@@ -1,5 +1,5 @@
 /* =========================================================
-   KachePai — Database Connected Frontend
+   KachePai — FINAL DATABASE FRONTEND
    Replace the ENTIRE script.js with this file.
 ========================================================= */
 
@@ -21,11 +21,17 @@ const API_BASE = (
 let kpToken = localStorage.getItem("kp_token") || "";
 
 /* =========================================================
-   BASIC HELPERS
+   BASIC
 ========================================================= */
 
-const money = n =>
-  "৳" + Number(n || 0).toLocaleString("en-BD");
+function money(value) {
+  return "৳" + Number(value || 0).toLocaleString("en-BD");
+}
+
+function safeNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
 
 function escapeHTML(value) {
   return String(value ?? "")
@@ -36,25 +42,19 @@ function escapeHTML(value) {
     .replace(/'/g, "&#039;");
 }
 
-function safeNumber(value, fallback = 0) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
 function getProductImage(product) {
   if (!product) return "";
 
   if (product.img) return product.img;
 
-  if (
-    Array.isArray(product.images) &&
-    product.images.length
-  ) {
-    return (
-      product.images[0].url ||
-      product.images[0].image ||
-      ""
-    );
+  if (Array.isArray(product.images) && product.images.length) {
+    const first = product.images[0];
+
+    if (typeof first === "string") {
+      return first;
+    }
+
+    return first.url || first.image || "";
   }
 
   return "";
@@ -73,11 +73,12 @@ function getCategoryName(product) {
 }
 
 function getCategoryIcon(category) {
-  return (
-    category?.icon ||
-    "🛍️"
-  );
+  return category?.icon || "🛍️";
 }
+
+/* =========================================================
+   LOCAL STORAGE
+========================================================= */
 
 function save() {
   localStorage.setItem(
@@ -121,9 +122,7 @@ function counts() {
 
 async function apiRequest(path, options = {}) {
   if (!API_BASE) {
-    throw new Error(
-      "Backend URL সেট করা হয়নি"
-    );
+    throw new Error("Backend URL সেট করা হয়নি");
   }
 
   const headers = {
@@ -132,8 +131,7 @@ async function apiRequest(path, options = {}) {
   };
 
   if (kpToken) {
-    headers.Authorization =
-      "Bearer " + kpToken;
+    headers.Authorization = "Bearer " + kpToken;
   }
 
   const response = await fetch(
@@ -145,14 +143,13 @@ async function apiRequest(path, options = {}) {
   );
 
   const data =
-    await response
-      .json()
-      .catch(() => ({}));
+    await response.json().catch(() => ({}));
 
   if (!response.ok) {
     throw new Error(
       data.error ||
-      "API request failed"
+      data.message ||
+      "Server request failed"
     );
   }
 
@@ -160,71 +157,56 @@ async function apiRequest(path, options = {}) {
 }
 
 /* =========================================================
-   AUTH API
+   AUTH
 ========================================================= */
 
-async function apiLogin(
-  identifier,
-  password
-) {
-  const data =
-    await apiRequest(
-      "/api/auth/login",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          identifier,
-          password
-        })
-      }
-    );
-
-  kpToken = data.token || "";
-
-  if (kpToken) {
-    localStorage.setItem(
-      "kp_token",
-      kpToken
-    );
-  }
-
-  return data;
-}
-
-async function apiRegister(
-  name,
-  mobile,
-  password
-) {
-  const data =
-    await apiRequest(
-      "/api/auth/register",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          name,
-          mobile,
-          password
-        })
-      }
-    );
-
-  kpToken = data.token || "";
-
-  if (kpToken) {
-    localStorage.setItem(
-      "kp_token",
-      kpToken
-    );
-  }
-
-  return data;
-}
-
-async function apiMe() {
-  return apiRequest(
-    "/api/me"
+async function apiLogin(identifier, password) {
+  const data = await apiRequest(
+    "/api/auth/login",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        identifier,
+        password
+      })
+    }
   );
+
+  kpToken = data.token || "";
+
+  if (kpToken) {
+    localStorage.setItem(
+      "kp_token",
+      kpToken
+    );
+  }
+
+  return data;
+}
+
+async function apiRegister(name, mobile, password) {
+  const data = await apiRequest(
+    "/api/auth/register",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        name,
+        mobile,
+        password
+      })
+    }
+  );
+
+  kpToken = data.token || "";
+
+  if (kpToken) {
+    localStorage.setItem(
+      "kp_token",
+      kpToken
+    );
+  }
+
+  return data;
 }
 
 async function apiCreateOrder(payload) {
@@ -238,7 +220,7 @@ async function apiCreateOrder(payload) {
 }
 
 /* =========================================================
-   LOAD DATABASE DATA
+   DATABASE LOADERS
 ========================================================= */
 
 async function loadCategories() {
@@ -322,18 +304,6 @@ function normalizeProduct(product) {
   const categoryName =
     getCategoryName(product);
 
-  const image =
-    getProductImage(product);
-
-  const rating =
-    product.rating !== null &&
-    product.rating !== undefined
-      ? "★ " +
-        safeNumber(
-          product.rating
-        ).toFixed(1)
-      : "★ 0.0";
-
   return {
     ...product,
 
@@ -351,26 +321,29 @@ function normalizeProduct(product) {
       safeNumber(product.price),
 
     old:
-      product.oldPrice === null ||
-      product.oldPrice === undefined
-        ? 0
-        : safeNumber(
-            product.oldPrice
-          ),
+      safeNumber(
+        product.oldPrice ??
+        product.old
+      ),
 
     badge:
       product.badge ||
       "",
 
-    rating,
+    rating:
+      product.rating !== null &&
+      product.rating !== undefined
+        ? "★ " +
+          safeNumber(
+            product.rating
+          ).toFixed(1)
+        : "★ 0.0",
 
     img:
-      image,
+      getProductImage(product),
 
     stock:
-      safeNumber(
-        product.stock
-      ),
+      safeNumber(product.stock),
 
     categoryId:
       product.categoryId ??
@@ -380,67 +353,36 @@ function normalizeProduct(product) {
 }
 
 /* =========================================================
-   DATABASE OFFER → FRONTEND OFFER
+   OFFER NORMALIZER
 ========================================================= */
 
 function normalizeOffer(offer) {
   const productIds =
-    Array.isArray(
-      offer.products
-    )
+    Array.isArray(offer.products)
       ? offer.products
-          .map(x =>
+          .map(item =>
             Number(
-              x.productId ??
-              x.product?.id
+              item.productId ??
+              item.product?.id
             )
           )
           .filter(Boolean)
       : [];
 
   const categoryNames =
-    Array.isArray(
-      offer.categories
-    )
+    Array.isArray(offer.categories)
       ? offer.categories
-          .map(x =>
-            x.category?.name ||
+          .map(item =>
+            item.category?.name ||
+            item.name ||
             ""
           )
           .filter(Boolean)
       : [];
 
-  let type =
-    offer.type ||
-    "percentage";
-
-  /*
-    Backend uses "fixed".
-    Existing offers.js understands "amount".
-  */
-  if (type === "fixed") {
-    type = "amount";
-  }
-
-  let startDate = "";
-
-  let endDate = "";
-
-  if (offer.startAt) {
-    startDate =
-      String(
-        offer.startAt
-      ).slice(0, 10);
-  }
-
-  if (offer.endAt) {
-    endDate =
-      String(
-        offer.endAt
-      ).slice(0, 10);
-  }
-
   return {
+    ...offer,
+
     id:
       String(offer.id),
 
@@ -452,18 +394,24 @@ function normalizeOffer(offer) {
       offer.message ||
       "",
 
-    type,
+    type:
+      offer.type === "fixed"
+        ? "amount"
+        : (
+            offer.type ||
+            "percentage"
+          ),
 
     discountPercent:
       offer.discountPercent == null
-        ? undefined
+        ? 0
         : safeNumber(
             offer.discountPercent
           ),
 
     discountAmount:
       offer.discountAmount == null
-        ? undefined
+        ? 0
         : safeNumber(
             offer.discountAmount
           ),
@@ -482,10 +430,6 @@ function normalizeOffer(offer) {
     endTime:
       offer.endTime ||
       "23:59",
-
-    startDate,
-
-    endDate,
 
     productIds,
 
@@ -509,34 +453,299 @@ function normalizeOffer(offer) {
 }
 
 /* =========================================================
-   SYNC BACKEND OFFERS INTO EXISTING OFFER ENGINE
+   OFFER ENGINE
+   Database offers are the main source.
 ========================================================= */
 
-function syncBackendOffersToEngine() {
-  if (
-    !window.KP_OFFER_ENGINE ||
-    !Array.isArray(
-      window.KP_OFFER_ENGINE.offers
-    )
-  ) {
+function nowInfo() {
+  const d = new Date();
+
+  return {
+    day: d.getDay(),
+
+    time:
+      String(d.getHours()).padStart(2, "0") +
+      ":" +
+      String(d.getMinutes()).padStart(2, "0")
+  };
+}
+
+function timeToMinutes(time) {
+  if (!time) return 0;
+
+  const parts =
+    String(time).split(":");
+
+  return (
+    Number(parts[0] || 0) * 60 +
+    Number(parts[1] || 0)
+  );
+}
+
+function offerIsActive(offer) {
+  if (!offer || offer.active === false) {
     return false;
   }
 
-  const normalized =
-    backendOffers.map(
-      normalizeOffer
+  const now =
+    nowInfo();
+
+  const days =
+    Array.isArray(
+      offer.recurringDays
+    )
+      ? offer.recurringDays
+      : [];
+
+  if (days.length) {
+    if (
+      !days.includes(
+        now.day
+      )
+    ) {
+      return false;
+    }
+
+    const current =
+      timeToMinutes(
+        now.time
+      );
+
+    const start =
+      timeToMinutes(
+        offer.startTime ||
+        "00:00"
+      );
+
+    const end =
+      timeToMinutes(
+        offer.endTime ||
+        "23:59"
+      );
+
+    return (
+      current >= start &&
+      current <= end
     );
-
-  const target =
-    window.KP_OFFER_ENGINE.offers;
-
-  target.splice(
-    0,
-    target.length,
-    ...normalized
-  );
+  }
 
   return true;
+}
+
+function activeOffers() {
+  return backendOffers
+    .map(normalizeOffer)
+    .filter(offerIsActive)
+    .sort(
+      (a, b) =>
+        safeNumber(b.priority) -
+        safeNumber(a.priority)
+    );
+}
+
+function offerMatchesProduct(
+  offer,
+  product
+) {
+  if (!offer || !product) {
+    return false;
+  }
+
+  const productIds =
+    offer.productIds || [];
+
+  const categoryNames =
+    offer.categories || [];
+
+  if (
+    productIds.length &&
+    productIds.includes(
+      Number(product.id)
+    )
+  ) {
+    return true;
+  }
+
+  if (
+    categoryNames.length &&
+    categoryNames.includes(
+      product.cat
+    )
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function productOffers(product) {
+  return activeOffers().filter(
+    offer =>
+      offerMatchesProduct(
+        offer,
+        product
+      )
+  );
+}
+
+function offerPrice(
+  product,
+  quantity = 1
+) {
+  if (!product) {
+    return 0;
+  }
+
+  let price =
+    safeNumber(
+      product.price
+    );
+
+  const offers =
+    productOffers(
+      product
+    );
+
+  for (const offer of offers) {
+    let next =
+      price;
+
+    if (
+      offer.type ===
+        "percentage" ||
+      offer.type ===
+        "festival" ||
+      offer.type ===
+        "campaign" ||
+      offer.type ===
+        "flash_sale" ||
+      offer.type ===
+        "happy_hour"
+    ) {
+      next =
+        price -
+        (
+          price *
+          safeNumber(
+            offer.discountPercent
+          )
+        ) /
+          100;
+    }
+
+    else if (
+      offer.type ===
+      "amount"
+    ) {
+      next =
+        price -
+        safeNumber(
+          offer.discountAmount
+        );
+    }
+
+    else if (
+      offer.type ===
+      "quantity"
+    ) {
+      const tiers =
+        Array.isArray(
+          offer.tiers
+        )
+          ? offer.tiers
+          : [];
+
+      const tier =
+        tiers
+          .filter(
+            t =>
+              quantity >=
+              safeNumber(t.qty)
+          )
+          .sort(
+            (a, b) =>
+              safeNumber(b.qty) -
+              safeNumber(a.qty)
+          )[0];
+
+      if (tier) {
+        if (tier.percent) {
+          next =
+            price -
+            (
+              price *
+              safeNumber(
+                tier.percent
+              )
+            ) /
+              100;
+        }
+
+        if (tier.amount) {
+          next =
+            price -
+            safeNumber(
+              tier.amount
+            );
+        }
+      }
+    }
+
+    if (
+      next < price
+    ) {
+      price =
+        next;
+
+      if (
+        offer.stackable !== true
+      ) {
+        break;
+      }
+    }
+  }
+
+  return Math.max(
+    0,
+    Math.round(
+      price
+    )
+  );
+}
+
+function offerText(offer) {
+  if (!offer) return "";
+
+  if (
+    safeNumber(
+      offer.discountPercent
+    ) > 0
+  ) {
+    return (
+      safeNumber(
+        offer.discountPercent
+      ) +
+      "% OFF"
+    );
+  }
+
+  if (
+    safeNumber(
+      offer.discountAmount
+    ) > 0
+  ) {
+    return (
+      money(
+        offer.discountAmount
+      ) +
+      " OFF"
+    );
+  }
+
+  return (
+    offer.title ||
+    "Special Offer"
+  );
 }
 
 /* =========================================================
@@ -544,51 +753,58 @@ function syncBackendOffersToEngine() {
 ========================================================= */
 
 function productCard(product) {
-  const p = product;
-
-  const image =
-    escapeHTML(
-      p.img || ""
-    );
-
-  const name =
-    escapeHTML(
-      p.name
-    );
-
-  const cat =
-    escapeHTML(
-      p.cat
-    );
-
-  const badge =
-    escapeHTML(
-      p.badge || ""
-    );
-
-  const rating =
-    escapeHTML(
-      p.rating || "★ 0.0"
+  const price =
+    safeNumber(
+      product.price
     );
 
   const oldPrice =
     safeNumber(
-      p.old
+      product.old
     );
 
-  const price =
-    safeNumber(
-      p.price
+  const finalPrice =
+    offerPrice(
+      product
     );
 
-  const stock =
-    safeNumber(
-      p.stock
+  const discounted =
+    finalPrice < price;
+
+  const offers =
+    productOffers(
+      product
+    );
+
+  const mainOffer =
+    offers[0];
+
+  const badge =
+    discounted
+      ? offerText(
+          mainOffer
+        )
+      : product.badge;
+
+  const image =
+    escapeHTML(
+      product.img ||
+      ""
+    );
+
+  const name =
+    escapeHTML(
+      product.name
+    );
+
+  const cat =
+    escapeHTML(
+      product.cat
     );
 
   const inWishlist =
     wishlist.includes(
-      p.id
+      Number(product.id)
     );
 
   return `
@@ -625,7 +841,9 @@ function productCard(product) {
           badge
             ? `
               <span class="badge">
-                ${badge}
+                ${escapeHTML(
+                  badge
+                )}
               </span>
             `
             : ""
@@ -633,7 +851,8 @@ function productCard(product) {
 
         <button
           class="heart"
-          onclick="toggleWishlist(${p.id})"
+          type="button"
+          onclick="toggleWishlist(${Number(product.id)})"
         >
           ${
             inWishlist
@@ -656,30 +875,61 @@ function productCard(product) {
 
         <div>
           <span class="rating">
-            ${rating}
+            ${escapeHTML(
+              product.rating
+            )}
           </span>
         </div>
 
         <div>
 
           <span class="price">
-            ${money(price)}
+            ${money(
+              finalPrice
+            )}
           </span>
 
           ${
-            oldPrice > price
+            discounted
               ? `
                 <span class="old">
-                  ${money(oldPrice)}
+                  ${money(price)}
                 </span>
               `
-              : ""
+              : oldPrice > price
+                ? `
+                  <span class="old">
+                    ${money(oldPrice)}
+                  </span>
+                `
+                : ""
           }
 
         </div>
 
         ${
-          stock <= 0
+          discounted
+            ? `
+              <small
+                style="
+                  display:block;
+                  margin-top:4px;
+                  color:#078b5b;
+                  font-weight:700;
+                "
+              >
+                ${escapeHTML(
+                  offerText(
+                    mainOffer
+                  )
+                )}
+              </small>
+            `
+            : ""
+        }
+
+        ${
+          product.stock <= 0
             ? `
               <button
                 class="add"
@@ -692,7 +942,8 @@ function productCard(product) {
             : `
               <button
                 class="add"
-                onclick="addCart(${p.id})"
+                type="button"
+                onclick="addCart(${Number(product.id)})"
               >
                 কার্টে যোগ করুন
               </button>
@@ -706,13 +957,16 @@ function productCard(product) {
 }
 
 /* =========================================================
-   RENDER PRODUCTS
+   RENDER PRODUCT GRID
 ========================================================= */
 
-function renderProducts(list) {
+function renderGrid(
+  selector,
+  list
+) {
   const box =
     document.querySelector(
-      "#productsGrid"
+      selector
     );
 
   if (!box) return;
@@ -731,75 +985,110 @@ function renderProducts(list) {
           .join("")
       : `
         <div class="empty">
-          কোনো পণ্য পাওয়া যায়নি।
+          এখনো কোনো পণ্য পাওয়া যায়নি।
         </div>
       `;
+}
+
+function renderProducts(list) {
+  renderGrid(
+    "#productsGrid",
+    list
+  );
 }
 
 window.renderProducts =
   renderProducts;
 
 /* =========================================================
-   EXTRA PRODUCT SECTIONS
+   ALL PRODUCTS
 ========================================================= */
 
-function renderExtra() {
+function renderAllProducts() {
+  renderGrid(
+    "#allProductsGrid",
+    products
+  );
+}
+
+/* =========================================================
+   POPULAR + NEW
+========================================================= */
+
+function renderExtraProducts() {
   const popular =
-    document.querySelector(
-      "#popularGrid"
-    );
+    products
+      .filter(
+        p =>
+          p.featured === true ||
+          String(
+            p.badge || ""
+          ).includes(
+            "জনপ্রিয়"
+          )
+      )
+      .slice(0, 8);
+
+  const popularFinal =
+    popular.length
+      ? popular
+      : products.slice(0, 8);
+
+  renderGrid(
+    "#popularGrid",
+    popularFinal
+  );
 
   const newest =
-    document.querySelector(
-      "#newGrid"
+    products
+      .filter(
+        p =>
+          String(
+            p.badge || ""
+          ).includes(
+            "নতুন"
+          )
+      )
+      .slice(0, 8);
+
+  const newestFinal =
+    newest.length
+      ? newest
+      : products
+          .slice()
+          .reverse()
+          .slice(0, 8);
+
+  renderGrid(
+    "#newGrid",
+    newestFinal
+  );
+}
+
+/* =========================================================
+   TODAY'S DEAL
+========================================================= */
+
+function renderDeals() {
+  const deals =
+    products.filter(
+      product =>
+        productOffers(
+          product
+        ).length ||
+        safeNumber(
+          product.old
+        ) >
+          safeNumber(
+            product.price
+          )
     );
 
-  if (popular) {
-    const popularProducts =
-      products
-        .filter(
-          p =>
-            p.featured ||
-            p.badge === "জনপ্রিয়"
-        )
-        .slice(0, 8);
-
-    popular.innerHTML =
-      popularProducts.length
-        ? popularProducts
-            .map(
-              productCard
-            )
-            .join("")
-        : `
-          <div class="empty">
-            এখনো জনপ্রিয় পণ্য নেই।
-          </div>
-        `;
-  }
-
-  if (newest) {
-    const newProducts =
-      products
-        .filter(
-          p =>
-            p.badge === "নতুন"
-        )
-        .slice(0, 8);
-
-    newest.innerHTML =
-      newProducts.length
-        ? newProducts
-            .map(
-              productCard
-            )
-            .join("")
-        : `
-          <div class="empty">
-            এখনো নতুন পণ্য নেই।
-          </div>
-        `;
-  }
+  renderProducts(
+    deals.length
+      ? deals.slice(0, 8)
+      : products.slice(0, 8)
+  );
 }
 
 /* =========================================================
@@ -826,168 +1115,96 @@ function renderCategories() {
       : categories;
 
   box.innerHTML =
-    list.map(
-      category => `
-        <button
-          class="category"
-          onclick="filterCategory(${Number(
-            category.id
-          )})"
-        >
+    list.length
+      ? list
+          .map(
+            category => `
+              <button
+                type="button"
+                class="category"
+                onclick="filterCategory(${Number(
+                  category.id
+                )})"
+              >
 
-          <span class="cat-icon">
-            ${escapeHTML(
-              getCategoryIcon(
-                category
-              )
-            )}
-          </span>
+                <span class="cat-icon">
+                  ${escapeHTML(
+                    getCategoryIcon(
+                      category
+                    )
+                  )}
+                </span>
 
-          <b>
-            ${escapeHTML(
-              category.name
-            )}
-          </b>
+                <b>
+                  ${escapeHTML(
+                    category.name
+                  )}
+                </b>
 
-        </button>
-      `
-    ).join("");
+              </button>
+            `
+          )
+          .join("")
+      : `
+        <div class="empty">
+          কোনো ক্যাটাগরি পাওয়া যায়নি।
+        </div>
+      `;
 }
-
-/* =========================================================
-   CATEGORY FILTER
-========================================================= */
 
 function filterCategory(
   categoryId
 ) {
   const id =
-    Number(categoryId);
+    Number(
+      categoryId
+    );
 
   const category =
     categories.find(
       c =>
-        Number(c.id) === id
+        Number(c.id) ===
+        id
     );
 
-  let list =
-    products.filter(
-      p =>
-        Number(
-          p.categoryId
-        ) === id
-    );
+  let ids = [id];
 
-  /*
-    If main category has children,
-    show products belonging to children.
-  */
   if (
     category &&
     Array.isArray(
       category.children
-    ) &&
-    category.children.length
+    )
   ) {
-    const ids = [
+    ids = [
       id,
       ...category.children.map(
-        c => Number(c.id)
+        child =>
+          Number(child.id)
       )
     ];
+  }
 
-    list =
-      products.filter(
-        p =>
-          ids.includes(
-            Number(
-              p.categoryId
-            )
+  const result =
+    products.filter(
+      product =>
+        ids.includes(
+          Number(
+            product.categoryId
           )
-      );
-  }
-
-  renderProducts(list);
-
-  scrollToSection(
-    "featured"
-  );
-}
-
-/* =========================================================
-   OFFER FILTER
-========================================================= */
-
-function filterProducts(type) {
-  if (
-    type === "offer" &&
-    window.KP_OFFER_ENGINE
-  ) {
-    const activeOffers =
-      typeof window
-        .KP_OFFER_ENGINE.active ===
-      "function"
-        ? window.KP_OFFER_ENGINE.active()
-        : [];
-
-    const offerIds =
-      new Set();
-
-    activeOffers.forEach(
-      offer => {
-        (
-          offer.productIds ||
-          []
-        ).forEach(
-          id =>
-            offerIds.add(
-              Number(id)
-            )
-        );
-      }
+        )
     );
-
-    const list =
-      products.filter(
-        product => {
-          if (
-            offerIds.has(
-              Number(
-                product.id
-              )
-            )
-          ) {
-            return true;
-          }
-
-          return (
-            safeNumber(
-              product.old
-            ) >
-            safeNumber(
-              product.price
-            )
-          );
-        }
-      );
-
-    renderProducts(list);
-
-    scrollToSection(
-      "featured"
-    );
-
-    return;
-  }
 
   renderProducts(
-    products
+    result
   );
 
   scrollToSection(
     "featured"
   );
 }
+
+window.filterCategory =
+  filterCategory;
 
 /* =========================================================
    SEARCH
@@ -1045,6 +1262,9 @@ function search() {
   );
 }
 
+window.search =
+  search;
+
 function scrollToSection(
   id
 ) {
@@ -1056,40 +1276,55 @@ function scrollToSection(
   if (!element) return;
 
   element.scrollIntoView({
-    behavior: "smooth"
+    behavior: "smooth",
+    block: "start"
   });
 }
 
+window.scrollToSection =
+  scrollToSection;
+
 /* =========================================================
-   SEARCH EVENTS
+   OFFER FILTER
 ========================================================= */
 
-const searchButton =
-  document.querySelector(
-    "#searchBtn"
-  );
+function filterProducts(
+  type
+) {
+  if (
+    type === "offer"
+  ) {
+    const list =
+      products.filter(
+        product =>
+          productOffers(
+            product
+          ).length ||
+          safeNumber(
+            product.old
+          ) >
+            safeNumber(
+              product.price
+            )
+      );
 
-if (searchButton) {
-  searchButton.onclick =
-    search;
+    renderProducts(
+      list
+    );
+
+  } else {
+    renderProducts(
+      products
+    );
+  }
+
+  scrollToSection(
+    "featured"
+  );
 }
 
-const searchInput =
-  document.querySelector(
-    "#search"
-  );
-
-if (searchInput) {
-  searchInput.onkeydown =
-    event => {
-      if (
-        event.key ===
-        "Enter"
-      ) {
-        search();
-      }
-    };
-}
+window.filterProducts =
+  filterProducts;
 
 /* =========================================================
    CART
@@ -1142,7 +1377,8 @@ function addCart(id) {
     existing.qty++;
   } else {
     cart.push({
-      id: Number(id),
+      id:
+        Number(id),
       qty: 1
     });
   }
@@ -1157,6 +1393,9 @@ function addCart(id) {
     "cart"
   );
 }
+
+window.addCart =
+  addCart;
 
 function changeQty(
   id,
@@ -1216,6 +1455,9 @@ function changeQty(
   );
 }
 
+window.changeQty =
+  changeQty;
+
 function removeCart(id) {
   cart =
     cart.filter(
@@ -1231,13 +1473,14 @@ function removeCart(id) {
   );
 }
 
+window.removeCart =
+  removeCart;
+
 /* =========================================================
    WISHLIST
 ========================================================= */
 
-function toggleWishlist(
-  id
-) {
+function toggleWishlist(id) {
   const numberId =
     Number(id);
 
@@ -1264,8 +1507,12 @@ function toggleWishlist(
     products
   );
 
-  renderExtra();
+  renderExtraProducts();
+  renderAllProducts();
 }
+
+window.toggleWishlist =
+  toggleWishlist;
 
 function wishlistHTML() {
   const list =
@@ -1277,9 +1524,7 @@ function wishlistHTML() {
     );
 
   return `
-    <h2>
-      Wishlist
-    </h2>
+    <h2>Wishlist</h2>
 
     ${
       list.length
@@ -1313,13 +1558,13 @@ function wishlistHTML() {
 
                     <div>
                       ${money(
-                        p.price
+                        offerPrice(p)
                       )}
                     </div>
 
                     <button
                       class="add"
-                      onclick="addCart(${p.id})"
+                      onclick="addCart(${Number(p.id)})"
                     >
                       কার্টে যোগ করুন
                     </button>
@@ -1340,10 +1585,10 @@ function wishlistHTML() {
 }
 
 /* =========================================================
-   OFFER-AWARE CART
+   CART CALCULATION
 ========================================================= */
 
-function calculateCartLocally() {
+function calculateCart() {
   const lines = [];
 
   let originalSubtotal = 0;
@@ -1359,9 +1604,7 @@ function calculateCartLocally() {
           Number(item.id)
       );
 
-    if (!product) {
-      continue;
-    }
+    if (!product) continue;
 
     const qty =
       Math.max(
@@ -1371,34 +1614,24 @@ function calculateCartLocally() {
         )
       );
 
-    const original =
+    const originalUnitPrice =
       safeNumber(
         product.price
       );
 
-    let finalPrice =
-      original;
-
-    if (
-      window.KP_OFFER_ENGINE &&
-      typeof window.KP_OFFER_ENGINE.price ===
-        "function"
-    ) {
-      finalPrice =
-        safeNumber(
-          window.KP_OFFER_ENGINE.price(
-            product,
-            qty
-          ),
-          original
-        );
-    }
+    const unitPrice =
+      offerPrice(
+        product,
+        qty
+      );
 
     const originalTotal =
-      original * qty;
+      originalUnitPrice *
+      qty;
 
     const finalTotal =
-      finalPrice * qty;
+      unitPrice *
+      qty;
 
     originalSubtotal +=
       originalTotal;
@@ -1409,10 +1642,8 @@ function calculateCartLocally() {
     lines.push({
       product,
       qty,
-      originalUnitPrice:
-        original,
-      unitPrice:
-        finalPrice,
+      originalUnitPrice,
+      unitPrice,
       originalTotal,
       finalTotal,
       discount:
@@ -1428,6 +1659,7 @@ function calculateCartLocally() {
     lines,
     originalSubtotal,
     subtotal,
+
     discount:
       Math.max(
         0,
@@ -1444,9 +1676,7 @@ function calculateCartLocally() {
 function cartHTML() {
   if (!cart.length) {
     return `
-      <h2>
-        আপনার কার্ট
-      </h2>
+      <h2>আপনার কার্ট</h2>
 
       <div class="empty">
         কার্ট এখন খালি।<br><br>
@@ -1456,7 +1686,7 @@ function cartHTML() {
   }
 
   const calc =
-    calculateCartLocally();
+    calculateCart();
 
   const rows =
     calc.lines
@@ -1468,6 +1698,11 @@ function cartHTML() {
           const discounted =
             line.unitPrice <
             line.originalUnitPrice;
+
+          const offer =
+            productOffers(
+              p
+            )[0];
 
           return `
             <div class="cart-item">
@@ -1528,7 +1763,11 @@ function cartHTML() {
                           font-weight:700;
                         "
                       >
-                        অফার মূল্য
+                        ${escapeHTML(
+                          offerText(
+                            offer
+                          )
+                        )}
                       </small>
                     `
                     : ""
@@ -1537,7 +1776,7 @@ function cartHTML() {
                 <div class="qty">
 
                   <button
-                    onclick="changeQty(${p.id},-1)"
+                    onclick="changeQty(${Number(p.id)},-1)"
                   >
                     −
                   </button>
@@ -1545,7 +1784,7 @@ function cartHTML() {
                   ${line.qty}
 
                   <button
-                    onclick="changeQty(${p.id},1)"
+                    onclick="changeQty(${Number(p.id)},1)"
                   >
                     +
                   </button>
@@ -1555,7 +1794,7 @@ function cartHTML() {
               </div>
 
               <button
-                onclick="removeCart(${p.id})"
+                onclick="removeCart(${Number(p.id)})"
               >
                 ×
               </button>
@@ -1567,9 +1806,7 @@ function cartHTML() {
       .join("");
 
   return `
-    <h2>
-      আপনার কার্ট
-    </h2>
+    <h2>আপনার কার্ট</h2>
 
     ${rows}
 
@@ -1654,51 +1891,37 @@ function accountHTML() {
       Customer Account
     </h2>
 
-    <h3
-      style="margin-top:20px"
-    >
+    <h3 style="margin-top:20px">
       নতুন Customer?
     </h3>
 
     <div class="field">
-
-      <label>
-        নাম
-      </label>
+      <label>নাম</label>
 
       <input
         id="regName"
         placeholder="আপনার নাম"
       >
-
     </div>
 
     <div class="field">
-
-      <label>
-        মোবাইল নম্বর
-      </label>
+      <label>মোবাইল নম্বর</label>
 
       <input
         id="regMobile"
         inputmode="numeric"
         placeholder="01XXXXXXXXX"
       >
-
     </div>
 
     <div class="field">
-
-      <label>
-        পাসওয়ার্ড
-      </label>
+      <label>পাসওয়ার্ড</label>
 
       <input
         id="regPassword"
         type="password"
         placeholder="কমপক্ষে ৬ অক্ষর"
       >
-
     </div>
 
     <button
@@ -1721,7 +1944,6 @@ function accountHTML() {
     </h3>
 
     <div class="field">
-
       <label>
         মোবাইল / Email
       </label>
@@ -1730,21 +1952,16 @@ function accountHTML() {
         id="loginIdentifier"
         placeholder="01XXXXXXXXX অথবা Email"
       >
-
     </div>
 
     <div class="field">
-
-      <label>
-        পাসওয়ার্ড
-      </label>
+      <label>পাসওয়ার্ড</label>
 
       <input
         id="loginPassword"
         type="password"
         placeholder="পাসওয়ার্ড"
       >
-
     </div>
 
     <button
@@ -1761,37 +1978,20 @@ function accountHTML() {
 ========================================================= */
 
 async function registerCustomer() {
-  const nameEl =
+  const name =
     document.querySelector(
       "#regName"
-    );
-
-  const mobileEl =
-    document.querySelector(
-      "#regMobile"
-    );
-
-  const passwordEl =
-    document.querySelector(
-      "#regPassword"
-    );
-
-  if (
-    !nameEl ||
-    !mobileEl ||
-    !passwordEl
-  ) {
-    return;
-  }
-
-  const name =
-    nameEl.value.trim();
+    )?.value.trim();
 
   const mobile =
-    mobileEl.value.trim();
+    document.querySelector(
+      "#regMobile"
+    )?.value.trim();
 
   const password =
-    passwordEl.value;
+    document.querySelector(
+      "#regPassword"
+    )?.value;
 
   if (
     !name ||
@@ -1875,33 +2075,23 @@ async function registerCustomer() {
   }
 }
 
+window.registerCustomer =
+  registerCustomer;
+
 /* =========================================================
    LOGIN
 ========================================================= */
 
 async function loginCustomer() {
-  const identifierEl =
+  const identifier =
     document.querySelector(
       "#loginIdentifier"
-    );
-
-  const passwordEl =
-    document.querySelector(
-      "#loginPassword"
-    );
-
-  if (
-    !identifierEl ||
-    !passwordEl
-  ) {
-    return;
-  }
-
-  const identifier =
-    identifierEl.value.trim();
+    )?.value.trim();
 
   const password =
-    passwordEl.value;
+    document.querySelector(
+      "#loginPassword"
+    )?.value;
 
   if (
     !identifier ||
@@ -1959,15 +2149,16 @@ async function loginCustomer() {
   }
 }
 
+window.loginCustomer =
+  loginCustomer;
+
 /* =========================================================
    CHECKOUT
 ========================================================= */
 
 function checkout() {
   if (!cart.length) {
-    toast(
-      "কার্ট খালি"
-    );
+    toast("কার্ট খালি");
     return;
   }
 
@@ -2003,7 +2194,7 @@ function checkout() {
   }
 
   const calc =
-    calculateCartLocally();
+    calculateCart();
 
   document.querySelector(
     "#panel"
@@ -2020,34 +2211,25 @@ function checkout() {
     </h2>
 
     <div class="field">
-
-      <label>
-        নাম
-      </label>
+      <label>নাম</label>
 
       <input
         id="coName"
         placeholder="আপনার নাম"
       >
-
     </div>
 
     <div class="field">
-
-      <label>
-        মোবাইল
-      </label>
+      <label>মোবাইল</label>
 
       <input
         id="coMobile"
         inputmode="numeric"
         placeholder="01XXXXXXXXX"
       >
-
     </div>
 
     <div class="field">
-
       <label>
         ডেলিভারি ঠিকানা
       </label>
@@ -2057,17 +2239,14 @@ function checkout() {
         rows="3"
         placeholder="বাসা/রোড/এলাকা"
       ></textarea>
-
     </div>
 
     <div class="field">
-
       <label>
         Payment Method
       </label>
 
       <select id="coPayment">
-
         <option value="COD">
           Cash on Delivery
         </option>
@@ -2075,13 +2254,10 @@ function checkout() {
         <option value="ONLINE">
           Online Payment (পরে যুক্ত হবে)
         </option>
-
       </select>
-
     </div>
 
     <div class="panel-total">
-
       <span>
         মূল দাম
       </span>
@@ -2091,7 +2267,6 @@ function checkout() {
           calc.originalSubtotal
         )}
       </span>
-
     </div>
 
     ${
@@ -2105,7 +2280,6 @@ function checkout() {
               font-weight:700;
             "
           >
-
             <span>
               Offer Discount
             </span>
@@ -2115,14 +2289,12 @@ function checkout() {
                 calc.discount
               )}
             </span>
-
           </div>
         `
         : ""
     }
 
     <div class="panel-total">
-
       <span>
         Product Total
       </span>
@@ -2132,12 +2304,11 @@ function checkout() {
           calc.subtotal
         )}
       </span>
-
     </div>
 
     <button
       class="full"
-      onclick="placeDemoOrder()"
+      onclick="placeOrder()"
     >
       Order Confirm
     </button>
@@ -2148,51 +2319,30 @@ window.checkout =
   checkout;
 
 /* =========================================================
-   PLACE REAL ORDER
+   REAL ORDER
 ========================================================= */
 
-async function placeDemoOrder() {
-  const nameEl =
+async function placeOrder() {
+  const name =
     document.querySelector(
       "#coName"
-    );
-
-  const mobileEl =
-    document.querySelector(
-      "#coMobile"
-    );
-
-  const addressEl =
-    document.querySelector(
-      "#coAddress"
-    );
-
-  const paymentEl =
-    document.querySelector(
-      "#coPayment"
-    );
-
-  if (
-    !nameEl ||
-    !mobileEl ||
-    !addressEl
-  ) {
-    return;
-  }
-
-  const name =
-    nameEl.value.trim();
+    )?.value.trim();
 
   const mobile =
-    mobileEl.value.trim();
+    document.querySelector(
+      "#coMobile"
+    )?.value.trim();
 
   const address =
-    addressEl.value.trim();
+    document.querySelector(
+      "#coAddress"
+    )?.value.trim();
 
   const paymentMethod =
-    paymentEl
-      ? paymentEl.value
-      : "COD";
+    document.querySelector(
+      "#coPayment"
+    )?.value ||
+    "COD";
 
   if (
     !name ||
@@ -2211,7 +2361,7 @@ async function placeDemoOrder() {
     )
   ) {
     toast(
-      "সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন। নম্বরটি 01 দিয়ে শুরু হতে হবে।"
+      "সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন।"
     );
     return;
   }
@@ -2237,6 +2387,7 @@ async function placeDemoOrder() {
           Number(
             item.id
           ),
+
         quantity:
           Number(
             item.qty
@@ -2319,11 +2470,7 @@ async function placeDemoOrder() {
           : ""
       }
 
-      <p
-        style="
-          color:#718078;
-        "
-      >
+      <p>
         আপনার অর্ডার backend-এ
         সফলভাবে সংরক্ষিত হয়েছে।
       </p>
@@ -2349,16 +2496,18 @@ async function placeDemoOrder() {
   }
 }
 
+window.placeOrder =
+  placeOrder;
+
+/* Compatibility */
 window.placeDemoOrder =
-  placeDemoOrder;
+  placeOrder;
 
 /* =========================================================
-   PANEL
+   PANELS
 ========================================================= */
 
-function openPanel(
-  type
-) {
+function openPanel(type) {
   const panel =
     document.querySelector(
       "#panel"
@@ -2373,30 +2522,34 @@ function openPanel(
     return;
   }
 
-  let html =
-    `
-      <button
-        class="panel-close"
-        onclick="closePanel()"
-      >
-        ×
-      </button>
-    `;
+  let html = `
+    <button
+      class="panel-close"
+      onclick="closePanel()"
+    >
+      ×
+    </button>
+  `;
 
-  if (type === "cart") {
+  if (
+    type ===
+    "cart"
+  ) {
     html +=
       cartHTML();
   }
 
   if (
-    type === "wishlist"
+    type ===
+    "wishlist"
   ) {
     html +=
       wishlistHTML();
   }
 
   if (
-    type === "account"
+    type ===
+    "account"
   ) {
     html +=
       accountHTML();
@@ -2408,6 +2561,9 @@ function openPanel(
   overlay.style.display =
     "block";
 }
+
+window.openPanel =
+  openPanel;
 
 function closePanel() {
   const overlay =
@@ -2421,6 +2577,9 @@ function closePanel() {
   }
 }
 
+window.closePanel =
+  closePanel;
+
 function overlayClose(
   event
 ) {
@@ -2432,6 +2591,30 @@ function overlayClose(
     closePanel();
   }
 }
+
+window.overlayClose =
+  overlayClose;
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+function logoutCustomer() {
+  kpToken = "";
+
+  localStorage.removeItem(
+    "kp_token"
+  );
+
+  closePanel();
+
+  toast(
+    "Logout হয়েছে"
+  );
+}
+
+window.logoutCustomer =
+  logoutCustomer;
 
 /* =========================================================
    TOAST
@@ -2453,17 +2636,23 @@ function toast(message) {
   );
 
   setTimeout(
-    () =>
+    () => {
       el.classList.remove(
         "show"
-      ),
+      );
+    },
     1800
   );
 }
 
+window.toast =
+  toast;
+
 /* =========================================================
    BANNERS
 ========================================================= */
+
+let kpBannerIndex = 0;
 
 function renderBanners() {
   let section =
@@ -2509,7 +2698,6 @@ function renderBanners() {
 
   section.innerHTML = `
     <div class="section-title">
-
       <div>
         <h2>
           বিশেষ প্রচারণা
@@ -2519,7 +2707,6 @@ function renderBanners() {
           KachePai Campaign
         </p>
       </div>
-
     </div>
 
     <div
@@ -2536,6 +2723,7 @@ function renderBanners() {
           (banner, index) => {
             const desktop =
               banner.desktopImage ||
+              banner.image ||
               "";
 
             const mobile =
@@ -2549,7 +2737,6 @@ function renderBanners() {
             return `
               <div
                 class="kp-banner-slide"
-                data-index="${index}"
                 style="
                   display:${
                     index === 0
@@ -2666,12 +2853,8 @@ function renderBanners() {
     </div>
   `;
 
-  window.kpBannerIndex =
-    0;
+  kpBannerIndex = 0;
 }
-
-window.kpBannerIndex =
-  0;
 
 function showBanner(index) {
   const slides =
@@ -2706,26 +2889,33 @@ function showBanner(index) {
     }
   );
 
-  window.kpBannerIndex =
+  kpBannerIndex =
     index;
 }
 
 function kpBannerPrev() {
   showBanner(
-    window.kpBannerIndex -
-      1
+    kpBannerIndex - 1
   );
 }
 
 function kpBannerNext() {
   showBanner(
-    window.kpBannerIndex +
-      1
+    kpBannerIndex + 1
   );
 }
 
+window.kpBannerPrev =
+  kpBannerPrev;
+
+window.kpBannerNext =
+  kpBannerNext;
+
 /* =========================================================
-   DATABASE OFFERS DISPLAY
+   DATABASE OFFERS
+   IMPORTANT:
+   Render only ONE offer container.
+   This removes the duplicate Weekend Offer.
 ========================================================= */
 
 function renderDatabaseOffers() {
@@ -2739,99 +2929,89 @@ function renderDatabaseOffers() {
       "#homeOfferBanner"
     );
 
-  if (
-    !dynamic &&
-    !home
-  ) {
-    return;
+  const upcoming =
+    document.querySelector(
+      "#upcomingOffers"
+    );
+
+  /*
+    Do not show the same offer twice.
+  */
+  if (home) {
+    home.innerHTML = "";
   }
 
   const active =
-    backendOffers
-      .filter(
-        offer =>
-          offer.active !== false
-      )
-      .sort(
-        (a, b) =>
-          safeNumber(
-            b.priority
-          ) -
-          safeNumber(
-            a.priority
-          )
-      );
-
-  const html =
-    active
-      .filter(
-        offer =>
-          offer.homepage !== false
-      )
-      .map(
-        offer => `
-          <div
-            class="offer-card"
-            style="
-              padding:16px;
-              margin-bottom:12px;
-              border-radius:14px;
-            "
-          >
-
-            <h3>
-              ${escapeHTML(
-                offer.title
-              )}
-            </h3>
-
-            <p>
-              ${escapeHTML(
-                offer.message ||
-                ""
-              )}
-            </p>
-
-            <button
-              class="add"
-              onclick="kpShowDatabaseOfferProducts('${escapeHTML(
-                String(
-                  offer.id
-                )
-              )}')"
-            >
-              অফারের পণ্য দেখুন
-            </button>
-
-          </div>
-        `
-      )
-      .join("");
+    activeOffers();
 
   if (dynamic) {
     dynamic.innerHTML =
-      html;
+      active.length
+        ? active
+            .map(
+              offer => `
+                <div
+                  class="offer-card"
+                  style="
+                    padding:16px;
+                    margin-bottom:12px;
+                    border-radius:14px;
+                  "
+                >
+
+                  <h3>
+                    ${escapeHTML(
+                      offer.title
+                    )}
+                  </h3>
+
+                  <p>
+                    ${escapeHTML(
+                      offer.message
+                    )}
+                  </p>
+
+                  <button
+                    class="add"
+                    type="button"
+                    onclick="showDatabaseOfferProducts('${escapeHTML(
+                      offer.id
+                    )}')"
+                  >
+                    অফারের পণ্য দেখুন
+                  </button>
+
+                </div>
+              `
+            )
+            .join("")
+        : `
+            <div class="empty">
+              এই মুহূর্তে কোনো চলমান অফার নেই।
+            </div>
+          `;
   }
 
-  if (home) {
-    home.innerHTML =
-      html;
+  if (upcoming) {
+    upcoming.innerHTML = "";
   }
 }
 
-function kpShowDatabaseOfferProducts(
+function showDatabaseOfferProducts(
   offerId
 ) {
   const offer =
-    backendOffers.find(
-      x =>
-        String(
-          x.id
-        ) ===
-        String(
-          offerId
-        )
-    );
+    backendOffers
+      .map(normalizeOffer)
+      .find(
+        offer =>
+          String(
+            offer.id
+          ) ===
+          String(
+            offerId
+          )
+      );
 
   if (!offer) {
     toast(
@@ -2840,48 +3020,13 @@ function kpShowDatabaseOfferProducts(
     return;
   }
 
-  const normalized =
-    normalizeOffer(
-      offer
-    );
-
-  const productIds =
-    new Set(
-      normalized.productIds
-        .map(
-          Number
-        )
-    );
-
-  const categoryNames =
-    new Set(
-      normalized.categories
-    );
-
   const result =
     products.filter(
-      product => {
-
-        if (
-          productIds.has(
-            Number(
-              product.id
-            )
-          )
-        ) {
-          return true;
-        }
-
-        if (
-          categoryNames.has(
-            product.cat
-          )
-        ) {
-          return true;
-        }
-
-        return false;
-      }
+      product =>
+        offerMatchesProduct(
+          offer,
+          product
+        )
     );
 
   renderProducts(
@@ -2893,13 +3038,18 @@ function kpShowDatabaseOfferProducts(
   );
 }
 
+window.showDatabaseOfferProducts =
+  showDatabaseOfferProducts;
+
+/* Compatibility */
+window.kpShowDatabaseOfferProducts =
+  showDatabaseOfferProducts;
+
 /* =========================================================
-   HOMEPAGE SECTION ORDER
+   HOMEPAGE SECTIONS
 ========================================================= */
 
-function getSectionType(
-  section
-) {
+function getSectionType(section) {
   const key =
     String(
       section.key ||
@@ -2916,110 +3066,68 @@ function getSectionType(
     key + " " + title;
 
   if (
-    text.includes(
-      "categor"
-    ) ||
-    text.includes(
-      "ক্যাটাগ"
-    )
+    text.includes("categor") ||
+    text.includes("ক্যাটাগ")
   ) {
     return "categories";
   }
 
   if (
-    text.includes(
-      "banner"
-    ) ||
-    text.includes(
-      "advert"
-    ) ||
-    text.includes(
-      "campaign"
-    ) ||
-    text.includes(
-      "ব্যানার"
-    )
+    text.includes("banner") ||
+    text.includes("advert") ||
+    text.includes("campaign") ||
+    text.includes("ব্যানার")
   ) {
     return "advertisementBanner";
   }
 
   if (
-    text.includes(
-      "offer"
-    ) ||
-    text.includes(
-      "flash"
-    ) ||
-    text.includes(
-      "sale"
-    ) ||
-    text.includes(
-      "অফার"
-    )
+    text.includes("offer") ||
+    text.includes("flash") ||
+    text.includes("sale") ||
+    text.includes("অফার")
   ) {
     return "offers";
   }
 
   if (
-    text.includes(
-      "popular"
-    ) ||
-    text.includes(
-      "best"
-    ) ||
-    text.includes(
-      "জনপ্রিয়"
-    )
+    text.includes("popular") ||
+    text.includes("জনপ্রিয়")
   ) {
     return "popular";
   }
 
   if (
-    text.includes(
-      "new"
-    ) ||
-    text.includes(
-      "arrival"
-    ) ||
-    text.includes(
-      "নতুন"
-    )
+    text.includes("best")
+  ) {
+    return "popular";
+  }
+
+  if (
+    text.includes("new") ||
+    text.includes("arrival") ||
+    text.includes("নতুন")
   ) {
     return "new";
   }
 
   if (
-    text.includes(
-      "recommend"
-    ) ||
-    text.includes(
-      "just"
-    ) ||
-    text.includes(
-      "recommended"
-    )
+    text.includes("recommend") ||
+    text.includes("just")
   ) {
     return "featured";
   }
 
   if (
-    text.includes(
-      "all"
-    ) ||
-    text.includes(
-      "সব"
-    )
+    text.includes("all") ||
+    text.includes("সব")
   ) {
-    return "featured";
+    return "all-products";
   }
 
   if (
-    text.includes(
-      "featured"
-    ) ||
-    text.includes(
-      "ফিচার"
-    )
+    text.includes("featured") ||
+    text.includes("ফিচার")
   ) {
     return "featured";
   }
@@ -3028,12 +3136,6 @@ function getSectionType(
 }
 
 function applyHomepageSections() {
-  if (
-    !homepageSections.length
-  ) {
-    return;
-  }
-
   const main =
     document.querySelector(
       "main"
@@ -3041,7 +3143,13 @@ function applyHomepageSections() {
 
   if (!main) return;
 
-  const sectionMap = {
+  if (
+    !homepageSections.length
+  ) {
+    return;
+  }
+
+  const map = {
     categories:
       document.querySelector(
         "#categories"
@@ -3070,6 +3178,11 @@ function applyHomepageSections() {
     new:
       document.querySelector(
         "#new"
+      ),
+
+    "all-products":
+      document.querySelector(
+        "#all-products"
       )
   };
 
@@ -3079,6 +3192,7 @@ function applyHomepageSections() {
         section =>
           section.visible !== false
       )
+      .slice()
       .sort(
         (a, b) =>
           safeNumber(
@@ -3097,11 +3211,9 @@ function applyHomepageSections() {
         );
 
       const element =
-        sectionMap[type];
+        map[type];
 
-      if (
-        !element
-      ) {
+      if (!element) {
         return;
       }
 
@@ -3113,52 +3225,7 @@ function applyHomepageSections() {
 }
 
 /* =========================================================
-   OPEN PANEL
-========================================================= */
-
-window.openPanel =
-  openPanel;
-
-window.closePanel =
-  closePanel;
-
-window.overlayClose =
-  overlayClose;
-
-window.addCart =
-  addCart;
-
-window.changeQty =
-  changeQty;
-
-window.removeCart =
-  removeCart;
-
-window.toggleWishlist =
-  toggleWishlist;
-
-window.filterCategory =
-  filterCategory;
-
-window.filterProducts =
-  filterProducts;
-
-window.search =
-  search;
-
-window.logoutCustomer =
-  function() {
-    kpToken = "";
-
-    localStorage.removeItem(
-      "kp_token"
-    );
-
-    location.reload();
-  };
-
-/* =========================================================
-   CLEAN OLD CART ITEMS
+   CLEAN CART
 ========================================================= */
 
 function cleanInvalidCartItems() {
@@ -3170,9 +3237,7 @@ function cleanInvalidCartItems() {
     new Set(
       products.map(
         p =>
-          Number(
-            p.id
-          )
+          Number(p.id)
       )
     );
 
@@ -3180,9 +3245,7 @@ function cleanInvalidCartItems() {
     cart.filter(
       item =>
         validIds.has(
-          Number(
-            item.id
-          )
+          Number(item.id)
         )
     );
 
@@ -3198,16 +3261,106 @@ function cleanInvalidCartItems() {
 }
 
 /* =========================================================
-   INITIAL LOAD
+   SEARCH EVENTS
+========================================================= */
+
+function setupSearch() {
+  const button =
+    document.querySelector(
+      "#searchBtn"
+    );
+
+  const input =
+    document.querySelector(
+      "#search"
+    );
+
+  if (button) {
+    button.onclick =
+      search;
+  }
+
+  if (input) {
+    input.addEventListener(
+      "keydown",
+      event => {
+        if (
+          event.key ===
+          "Enter"
+        ) {
+          search();
+        }
+      }
+    );
+  }
+}
+
+/* =========================================================
+   STOP OLD OFFERS.JS FROM OVERRIDING OUR UI
+========================================================= */
+
+function rebindKachePaiFunctions() {
+  window.renderProducts =
+    renderProducts;
+
+  window.cartHTML =
+    cartHTML;
+
+  window.checkout =
+    checkout;
+
+  window.placeOrder =
+    placeOrder;
+
+  window.placeDemoOrder =
+    placeOrder;
+
+  window.openPanel =
+    openPanel;
+
+  window.closePanel =
+    closePanel;
+
+  window.overlayClose =
+    overlayClose;
+
+  window.addCart =
+    addCart;
+
+  window.changeQty =
+    changeQty;
+
+  window.removeCart =
+    removeCart;
+
+  window.toggleWishlist =
+    toggleWishlist;
+
+  window.filterCategory =
+    filterCategory;
+
+  window.filterProducts =
+    filterProducts;
+
+  window.search =
+    search;
+}
+
+/* =========================================================
+   INITIALIZE
 ========================================================= */
 
 async function initializeKachePai() {
-  try {
-    /*
-      Load all public marketplace data
-      together.
-    */
-    await Promise.all([
+  /*
+    IMPORTANT:
+    Promise.all() was causing one failed endpoint
+    to break the whole website.
+
+    Now every API is loaded independently.
+  */
+
+  const results =
+    await Promise.allSettled([
       loadCategories(),
       loadProducts(),
       loadBanners(),
@@ -3215,116 +3368,109 @@ async function initializeKachePai() {
       loadOffers()
     ]);
 
-    cleanInvalidCartItems();
-
-    renderCategories();
-
-    renderProducts(
-      products
+  const errors =
+    results.filter(
+      result =>
+        result.status ===
+        "rejected"
     );
 
-    renderExtra();
-
-    renderBanners();
-
-    /*
-      The existing offers.js loads before
-      this async operation normally finishes.
-      Sync its offer engine with DB data.
-    */
-    syncBackendOffersToEngine();
-
-    /*
-      Use our DB-backed offer display.
-    */
-    renderDatabaseOffers();
-
-    /*
-      Re-attach our frontend functions after
-      offers.js has loaded and possibly
-      replaced some window functions.
-    */
-    window.renderProducts =
-      renderProducts;
-
-    window.cartHTML =
-      cartHTML;
-
-    window.checkout =
-      checkout;
-
-    window.placeDemoOrder =
-      placeDemoOrder;
-
-    /*
-      Homepage order comes from DB.
-    */
-    applyHomepageSections();
-
-    counts();
-
-    console.log(
-      "KachePai marketplace loaded:",
-      {
-        categories:
-          categories.length,
-
-        products:
-          products.length,
-
-        banners:
-          banners.length,
-
-        offers:
-          backendOffers.length,
-
-        homepageSections:
-          homepageSections.length
-      }
+  if (errors.length) {
+    console.warn(
+      "Some KachePai API sections failed:",
+      errors
     );
+  }
 
-  } catch (error) {
-    console.error(
-      "KachePai marketplace load error:",
-      error
-    );
+  cleanInvalidCartItems();
 
-    /*
-      Do NOT silently use the old
-      hard-coded product database.
-    */
-    const productBox =
-      document.querySelector(
-        "#productsGrid"
-      );
+  /*
+    Render everything independently.
+  */
+  renderCategories();
 
-    if (productBox) {
-      productBox.innerHTML = `
-        <div class="empty">
+  renderDeals();
 
-          <h3>
-            পণ্য লোড করা যাচ্ছে না
-          </h3>
+  renderExtraProducts();
 
-          <p>
-            Backend-এর সাথে সংযোগে
-            সমস্যা হয়েছে।
-          </p>
+  renderAllProducts();
 
-          <button
-            class="add"
-            onclick="location.reload()"
-          >
-            আবার চেষ্টা করুন
-          </button>
+  renderBanners();
 
-        </div>
-      `;
+  renderDatabaseOffers();
+
+  /*
+    Apply database homepage order.
+  */
+  applyHomepageSections();
+
+  counts();
+
+  rebindKachePaiFunctions();
+
+  console.log(
+    "KachePai loaded:",
+    {
+      categories:
+        categories.length,
+
+      products:
+        products.length,
+
+      banners:
+        banners.length,
+
+      offers:
+        backendOffers.length,
+
+      homepageSections:
+        homepageSections.length
     }
+  );
 
-    toast(
-      error.message ||
-      "Marketplace data load হয়নি"
+  /*
+    If products failed, show a useful message
+    only inside product areas.
+  */
+  if (!products.length) {
+    const grids = [
+      "#productsGrid",
+      "#popularGrid",
+      "#newGrid",
+      "#allProductsGrid"
+    ];
+
+    grids.forEach(
+      selector => {
+        const box =
+          document.querySelector(
+            selector
+          );
+
+        if (box) {
+          box.innerHTML = `
+            <div class="empty">
+
+              <h3>
+                পণ্য লোড করা যাচ্ছে না
+              </h3>
+
+              <p>
+                Backend-এর সাথে
+                সংযোগে সমস্যা হয়েছে।
+              </p>
+
+              <button
+                class="add"
+                onclick="location.reload()"
+              >
+                আবার চেষ্টা করুন
+              </button>
+
+            </div>
+          `;
+        }
+      }
     );
   }
 }
@@ -3335,4 +3481,34 @@ async function initializeKachePai() {
 
 counts();
 
+setupSearch();
+
 initializeKachePai();
+
+/*
+  offers.js is loaded after this file.
+  It may register its own DOMContentLoaded handler
+  and temporarily replace some functions.
+
+  This runs AFTER those handlers and restores
+  the final KachePai database frontend.
+*/
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+    setTimeout(
+      () => {
+        rebindKachePaiFunctions();
+
+        renderDatabaseOffers();
+
+        renderExtraProducts();
+
+        renderAllProducts();
+
+        counts();
+      },
+      0
+    );
+  }
+);
