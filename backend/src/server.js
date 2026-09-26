@@ -433,7 +433,14 @@ app.post(
           "Order created successfully",
 
         orderId:
-          "KP-" + order.id,
+          orderId:
+  "KCP-" +
+  new Date(order.createdAt)
+    .toISOString()
+    .slice(0, 10)
+    .replace(/-/g, "") +
+  "-" +
+  String(order.id).padStart(4, "0"),
 
         id: order.id,
 
