@@ -7,15 +7,225 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/* ======================================================
+   USER
+====================================================== */
+
 model User {
-  id             Int       @id @default(autoincrement())
-  name           String?
-  mobile         String?   @unique
-  email          String?   @unique
-  passwordHash   String?
-  otpHash        String?
-  otpExpiresAt   DateTime?
-  mobileVerified Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                    Int       @id @default(autoincrement())
+
+  name                  String?
+  mobile                String    @unique
+  email                 String?   @unique
+  passwordHash          String?
+
+  /*
+    CUSTOMER
+    EMPLOYEE
+    PARTNER
+    OWNER
+  */
+  accountType           String    @default("CUSTOMER")
+
+  /*
+    Employee-এর Department
+  */
+  departmentId          Int?
+  department            Department? @relation(fields: [departmentId], references: [id])
+
+  /*
+    Employee hierarchy
+    Manager → Supervisor → Staff
+  */
+  roleId                Int?
+  role                  Role?     @relation(fields: [roleId], references: [id])
+
+  managerId             Int?
+  manager               User?     @relation("UserManager", fields: [managerId], references: [id])
+  subordinates          User[]    @relation("UserManager")
+
+  /*
+    Custom permissions
+  */
+  customPermissions     UserPermission[] @relation("UserCustomPermissions")
+
+  /*
+    কে permission দিয়েছে
+  */
+  grantedPermissions    UserPermission[] @relation("PermissionGrantedBy")
+
+  /*
+    Password / OTP
+  */
+  otp                   String?
+  otpExpiresAt          DateTime?
+
+  passwordResetTokenHash   String?   @unique
+  passwordResetExpiresAt   DateTime?
+
+  mobileVerified        Boolean   @default(false)
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  /*
+    Activity log
+  */
+  auditLogs             AuditLog[] @relation("AuditActor")
+  targetAuditLogs       AuditLog[] @relation("AuditTarget")
+}
+
+
+/* ======================================================
+   DEPARTMENT
+====================================================== */
+
+model Department {
+  id          Int       @id @default(autoincrement())
+
+  name        String    @unique
+  description String?
+  active      Boolean   @default(true)
+
+  users       User[]
+  roles       Role[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+
+/* ======================================================
+   ROLE
+====================================================== */
+
+model Role {
+  id              Int       @id @default(autoincrement())
+
+  name            String
+  description     String?
+
+  /*
+    Manager = 1
+    Supervisor = 2
+    Staff = 3
+
+    পরে আরও role যোগ করা যাবে।
+  */
+  level           Int       @default(3)
+
+  departmentId    Int?
+  department      Department? @relation(fields: [departmentId], references: [id])
+
+  users           User[]
+
+  permissions     RolePermission[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([name, departmentId])
+}
+
+
+/* ======================================================
+   PERMISSION
+====================================================== */
+
+model Permission {
+  id          Int       @id @default(autoincrement())
+
+  /*
+    যেমন:
+    orders.view
+    orders.edit
+    products.create
+    inventory.update
+  */
+  key         String    @unique
+
+  name        String
+  description String?
+
+  module      String?
+
+  active      Boolean   @default(true)
+
+  roles       RolePermission[]
+  users       UserPermission[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+
+/* ======================================================
+   ROLE DEFAULT PERMISSION
+====================================================== */
+
+model RolePermission {
+  id            Int       @id @default(autoincrement())
+
+  roleId        Int
+  permissionId  Int
+
+  role          Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission    Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime   @default(now())
+
+  @@unique([roleId, permissionId])
+}
+
+
+/* ======================================================
+   USER CUSTOM PERMISSION
+====================================================== */
+
+model UserPermission {
+  id              Int       @id @default(autoincrement())
+
+  userId          Int
+  permissionId    Int
+
+  /*
+    true  = permission দেওয়া
+    false = permission বন্ধ করা
+  */
+  allowed         Boolean   @default(true)
+
+  /*
+    কে এই permission পরিবর্তন করেছে
+  */
+  grantedById     Int?
+
+  user            User       @relation("UserCustomPermissions", fields: [userId], references: [id], onDelete: Cascade)
+  permission      Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  grantedBy      User?      @relation("PermissionGrantedBy", fields: [grantedById], references: [id])
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@unique([userId, permissionId])
+}
+
+
+/* ======================================================
+   AUDIT LOG
+====================================================== */
+
+model AuditLog {
+  id            Int       @id @default(autoincrement())
+
+  actorId       Int?
+  targetUserId  Int?
+
+  action        String
+  details       Json?
+
+  actor         User?     @relation("AuditActor", fields: [actorId], references: [id])
+  targetUser    User?     @relation("AuditTarget", fields: [targetUserId], references: [id])
+
+  createdAt     DateTime  @default(now())
 }
