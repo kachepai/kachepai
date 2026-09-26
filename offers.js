@@ -1,50 +1,45 @@
 /*
 ========================================================
- KachePai — Dynamic Offer Engine v2
-========================================================
- Supports:
- - Individual / Product discount
- - Category discount
- - Festival / Campaign
- - Flash Sale / Happy Hour
- - Spend & Save
- - Buy X Get Y
- - Buy More Save More
- - Quantity discount
- - Combo / Bundle
- - Mix & Match
- - Free Gift
- - Coupon
- - Free Shipping
- - Cashback / Loyalty / Referral metadata
- - Customer eligibility
- - Date / time / recurring schedule
- - Priority + stacking
- - Active-offer product prioritisation
+KACHEPAI — CLEAN DYNAMIC OFFER ENGINE
 ========================================================
 */
 
 const kpOffers = [
+
+  /* ==============================
+     WEEKEND OFFER
+  ============================== */
+
   {
     id: "weekend-001",
+
     title: "🎉 সাপ্তাহিক Weekend Offer",
-    message: "শুক্রবার ও শনিবার নির্বাচিত পণ্যে বিশেষ ছাড়",
+
+    message:
+      "শুক্রবার ও শনিবার নির্বাচিত পণ্যে ১০% ছাড়",
+
     type: "percentage",
 
     recurringDays: [5, 6],
+
     startTime: "00:00",
     endTime: "23:59",
 
     discountPercent: 10,
 
     categories: [],
+
     productIds: [1, 2, 5],
 
     priority: 10,
+
     homepage: true,
+
     active: true,
+
     stackable: false
   }
+
 ];
 
 
@@ -52,41 +47,48 @@ const kpOffers = [
    BASIC HELPERS
 ====================================================== */
 
-function kpMoney(v) {
+function kpMoney(value) {
+
   if (typeof money === "function") {
-    return money(v);
+    return money(value);
   }
 
-  return "৳" + Number(v || 0).toLocaleString("en-BD");
+  return "৳" +
+    Number(value || 0).toLocaleString("en-BD");
 }
 
 
 function kpNow() {
-  const n = new Date();
+
+  const d = new Date();
 
   return {
-    date: [
-      n.getFullYear(),
-      String(n.getMonth() + 1).padStart(2, "0"),
-      String(n.getDate()).padStart(2, "0")
-    ].join("-"),
+    date:
+      d.getFullYear() +
+      "-" +
+      String(d.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(d.getDate()).padStart(2, "0"),
 
     time:
-      String(n.getHours()).padStart(2, "0") +
+      String(d.getHours()).padStart(2, "0") +
       ":" +
-      String(n.getMinutes()).padStart(2, "0"),
+      String(d.getMinutes()).padStart(2, "0"),
 
-    day: n.getDay()
+    day: d.getDay()
   };
 }
 
 
-function kpTimeToMinutes(t) {
-  if (!t) return 0;
+function kpMinutes(time) {
 
-  const [h, m] = String(t).split(":").map(Number);
+  if (!time) return 0;
 
-  return (h || 0) * 60 + (m || 0);
+  const parts =
+    String(time).split(":").map(Number);
+
+  return (parts[0] || 0) * 60 +
+         (parts[1] || 0);
 }
 
 
@@ -97,48 +99,51 @@ function kpTimeToMinutes(t) {
 function kpDateTimeActive(offer) {
 
   const now = kpNow();
-  const current = kpTimeToMinutes(now.time);
 
+  const current =
+    kpMinutes(now.time);
 
-  /* Recurring offer */
+  if (Array.isArray(offer.recurringDays)) {
 
-  if (offer.recurringDays) {
-
-    if (!offer.recurringDays.includes(now.day)) {
+    if (
+      !offer.recurringDays.includes(now.day)
+    ) {
       return false;
     }
 
     const start =
-      kpTimeToMinutes(offer.startTime || "00:00");
+      kpMinutes(offer.startTime || "00:00");
 
     const end =
-      kpTimeToMinutes(offer.endTime || "23:59");
+      kpMinutes(offer.endTime || "23:59");
 
-    return current >= start && current <= end;
+    return (
+      current >= start &&
+      current <= end
+    );
   }
 
 
-  /* Normal date based offer */
-
-  if (offer.startDate && now.date < offer.startDate) {
+  if (
+    offer.startDate &&
+    now.date < offer.startDate
+  ) {
     return false;
   }
 
-  if (offer.endDate && now.date > offer.endDate) {
+
+  if (
+    offer.endDate &&
+    now.date > offer.endDate
+  ) {
     return false;
   }
-
-
-  const start =
-    kpTimeToMinutes(offer.startTime || "00:00");
-
-  const end =
-    kpTimeToMinutes(offer.endTime || "23:59");
 
 
   if (
     offer.startDate === now.date &&
-    current < start
+    current <
+      kpMinutes(offer.startTime || "00:00")
   ) {
     return false;
   }
@@ -146,7 +151,8 @@ function kpDateTimeActive(offer) {
 
   if (
     offer.endDate === now.date &&
-    current > end
+    current >
+      kpMinutes(offer.endTime || "23:59")
   ) {
     return false;
   }
@@ -160,7 +166,10 @@ function kpDateTimeActive(offer) {
    CUSTOMER ELIGIBILITY
 ====================================================== */
 
-function kpCustomerAllowed(offer, customer = {}) {
+function kpCustomerAllowed(
+  offer,
+  customer = {}
+) {
 
   if (
     !offer.customerType ||
@@ -170,26 +179,34 @@ function kpCustomerAllowed(offer, customer = {}) {
   }
 
 
-  if (offer.customerType === "new") {
+  if (
+    offer.customerType === "new"
+  ) {
     return !!customer.isNew;
   }
 
 
-  if (offer.customerType === "returning") {
+  if (
+    offer.customerType === "returning"
+  ) {
     return !!customer.isReturning;
   }
 
 
-  if (offer.customerType === "loggedIn") {
+  if (
+    offer.customerType === "loggedIn"
+  ) {
     return !!customer.loggedIn;
   }
 
 
   if (
-    offer.customerIds &&
+    Array.isArray(offer.customerIds) &&
     offer.customerIds.length
   ) {
-    return offer.customerIds.includes(customer.id);
+    return offer.customerIds.includes(
+      customer.id
+    );
   }
 
 
@@ -198,7 +215,7 @@ function kpCustomerAllowed(offer, customer = {}) {
 
 
 /* ======================================================
-   ACTIVE OFFER
+   ACTIVE OFFERS
 ====================================================== */
 
 function kpOfferIsActive(
@@ -210,20 +227,25 @@ function kpOfferIsActive(
     offer &&
     offer.active !== false &&
     kpDateTimeActive(offer) &&
-    kpCustomerAllowed(offer, customer)
+    kpCustomerAllowed(
+      offer,
+      customer
+    )
   );
 }
 
 
-/* ======================================================
-   ACTIVE OFFERS
-====================================================== */
-
-function kpActiveOffers(customer = {}) {
+function kpActiveOffers(
+  customer = {}
+) {
 
   return kpOffers
-    .filter(o =>
-      kpOfferIsActive(o, customer)
+    .filter(
+      offer =>
+        kpOfferIsActive(
+          offer,
+          customer
+        )
     )
     .sort(
       (a, b) =>
@@ -247,52 +269,58 @@ function kpOfferMatchesProduct(
   }
 
 
-  const hasProducts =
-    Array.isArray(offer.productIds) &&
-    offer.productIds.length;
+  const productIds =
+    Array.isArray(offer.productIds)
+      ? offer.productIds
+      : [];
 
 
-  const hasCategories =
-    Array.isArray(offer.categories) &&
-    offer.categories.length;
+  const categories =
+    Array.isArray(offer.categories)
+      ? offer.categories
+      : [];
+
+
+  const bundleIds =
+    Array.isArray(offer.bundleProductIds)
+      ? offer.bundleProductIds
+      : [];
 
 
   if (
-    hasProducts &&
-    !offer.productIds.includes(product.id)
+    productIds.length &&
+    !productIds.includes(product.id)
   ) {
     return false;
   }
 
 
   if (
-    hasCategories &&
-    !offer.categories.includes(product.cat)
+    categories.length &&
+    !categories.includes(product.cat)
   ) {
     return false;
   }
 
 
   if (
-    hasProducts ||
-    hasCategories
+    bundleIds.length &&
+    !bundleIds.includes(product.id)
   ) {
-    return true;
+    return false;
   }
 
 
-  if (
-    Array.isArray(offer.bundleProductIds) &&
-    offer.bundleProductIds.length
-  ) {
-
-    return offer.bundleProductIds.includes(
-      product.id
-    );
-  }
-
-
-  return true;
+  return (
+    productIds.length > 0 ||
+    categories.length > 0 ||
+    bundleIds.length > 0 ||
+    (
+      !productIds.length &&
+      !categories.length &&
+      !bundleIds.length
+    )
+  );
 }
 
 
@@ -306,11 +334,12 @@ function kpProductOffers(
 ) {
 
   return kpActiveOffers(customer)
-    .filter(offer =>
-      kpOfferMatchesProduct(
-        offer,
-        product
-      )
+    .filter(
+      offer =>
+        kpOfferMatchesProduct(
+          offer,
+          product
+        )
     );
 }
 
@@ -329,32 +358,37 @@ function kpApplyProductOffer(
 
 
   if (
-    offer.discountPercent != null
-  ) {
-
-    result -=
-      result *
-      Number(offer.discountPercent) /
-      100;
-  }
-
-
-  if (
-    offer.discountAmount != null
-  ) {
-
-    result -=
-      Number(offer.discountAmount);
-  }
-
-
-  if (
     offer.type === "flash_sale" &&
     offer.salePrice != null
   ) {
 
     result =
       Number(offer.salePrice);
+
+  } else {
+
+    if (
+      offer.discountPercent != null
+    ) {
+
+      result -=
+        result *
+        Number(
+          offer.discountPercent
+        ) /
+        100;
+    }
+
+
+    if (
+      offer.discountAmount != null
+    ) {
+
+      result -=
+        Number(
+          offer.discountAmount
+        );
+    }
   }
 
 
@@ -364,10 +398,6 @@ function kpApplyProductOffer(
   );
 }
 
-
-/* ======================================================
-   FINAL PRODUCT PRICE
-====================================================== */
 
 function kpOfferPrice(
   product,
@@ -386,32 +416,29 @@ function kpOfferPrice(
     );
 
 
-  if (!offers.length) {
-    return Number(product.price || 0);
-  }
-
-
   let price =
     Number(product.price || 0);
 
 
-  for (const offer of offers) {
-
-    /*
-      Cart-level offers are handled later.
-    */
+  for (
+    const offer of offers
+  ) {
 
     if (
-      offer.type === "coupon" ||
-      offer.type === "spend_save" ||
-      offer.type === "buy_x_get_y" ||
-      offer.type === "combo" ||
-      offer.type === "mix_match" ||
-      offer.type === "free_gift" ||
-      offer.type === "free_shipping" ||
-      offer.type === "cashback" ||
-      offer.type === "loyalty" ||
-      offer.type === "referral"
+      [
+        "spend_save",
+        "buy_x_get_y",
+        "buy_more_save_more",
+        "quantity",
+        "combo",
+        "mix_match",
+        "free_gift",
+        "coupon",
+        "free_shipping",
+        "cashback",
+        "loyalty",
+        "referral"
+      ].includes(offer.type)
     ) {
       continue;
     }
@@ -434,7 +461,7 @@ function kpOfferPrice(
 
   return Math.max(
     0,
-    price
+    Math.round(price)
   );
 }
 
@@ -455,9 +482,10 @@ function kpOfferDiscountText(
   if (
     offer.discountPercent != null
   ) {
-
     return (
-      Number(offer.discountPercent) +
+      Number(
+        offer.discountPercent
+      ) +
       "% OFF"
     );
   }
@@ -466,7 +494,6 @@ function kpOfferDiscountText(
   if (
     offer.discountAmount != null
   ) {
-
     return (
       kpMoney(
         offer.discountAmount
@@ -479,7 +506,6 @@ function kpOfferDiscountText(
   if (
     offer.salePrice != null
   ) {
-
     return (
       "মাত্র " +
       kpMoney(
@@ -489,76 +515,52 @@ function kpOfferDiscountText(
   }
 
 
-  if (
-    offer.type === "spend_save"
-  ) {
-    return "Spend & Save";
+  switch (offer.type) {
+
+    case "spend_save":
+      return "Spend & Save";
+
+    case "buy_x_get_y":
+      return (
+        "Buy " +
+        (offer.buyQty || 1) +
+        " Get " +
+        (offer.getQty || 1)
+      );
+
+    case "buy_more_save_more":
+      return "Buy More Save More";
+
+    case "quantity":
+      return "Quantity Discount";
+
+    case "combo":
+      return "Combo Offer";
+
+    case "mix_match":
+      return "Mix & Match";
+
+    case "free_gift":
+      return "Free Gift";
+
+    case "coupon":
+      return "Coupon";
+
+    case "free_shipping":
+      return "Free Shipping";
+
+    case "cashback":
+      return "Cashback";
+
+    case "loyalty":
+      return "Loyalty Bonus";
+
+    case "referral":
+      return "Referral Bonus";
+
+    default:
+      return "SPECIAL OFFER";
   }
-
-
-  if (
-    offer.type === "buy_x_get_y"
-  ) {
-
-    return (
-      "Buy " +
-      (offer.buyQty || 1) +
-      " Get " +
-      (offer.getQty || 1)
-    );
-  }
-
-
-  if (
-    offer.type === "combo"
-  ) {
-    return "Combo Offer";
-  }
-
-
-  if (
-    offer.type === "mix_match"
-  ) {
-    return "Mix & Match";
-  }
-
-
-  if (
-    offer.type === "free_gift"
-  ) {
-    return "Free Gift";
-  }
-
-
-  if (
-    offer.type === "free_shipping"
-  ) {
-    return "Free Shipping";
-  }
-
-
-  if (
-    offer.type === "cashback"
-  ) {
-    return "Cashback";
-  }
-
-
-  if (
-    offer.type === "loyalty"
-  ) {
-    return "Loyalty Bonus";
-  }
-
-
-  if (
-    offer.type === "referral"
-  ) {
-    return "Referral Bonus";
-  }
-
-
-  return "SPECIAL OFFER";
 }
 
 
@@ -605,6 +607,12 @@ function kpCartProducts(
         );
 
 
+      const original =
+        Number(
+          product.price || 0
+        );
+
+
       const unitPrice =
         kpOfferPrice(product);
 
@@ -617,18 +625,16 @@ function kpCartProducts(
 
         qty,
 
+        originalUnitPrice:
+          original,
+
         unitPrice,
 
-        originalUnitPrice:
-          Number(product.price || 0),
-
         lineOriginal:
-          Number(product.price || 0) *
-          qty,
+          original * qty,
 
         lineTotal:
-          unitPrice *
-          qty
+          unitPrice * qty
       };
 
     })
@@ -637,16 +643,19 @@ function kpCartProducts(
 
 
 /* ======================================================
-   SPEND & SAVE
+   BUY MORE / QUANTITY
 ====================================================== */
 
-function kpSpendSaveDiscount(
-  subtotal,
+function kpQuantityDiscount(
+  line,
   offer
 ) {
 
   if (
-    offer.type !== "spend_save"
+    ![
+      "buy_more_save_more",
+      "quantity"
+    ].includes(offer.type)
   ) {
     return 0;
   }
@@ -661,28 +670,32 @@ function kpSpendSaveDiscount(
   let best = 0;
 
 
-  tiers.forEach(tier => {
+  tiers.forEach(
+    tier => {
 
-    if (
-      subtotal >=
-      Number(
-        tier.minSpend || 0
-      )
-    ) {
+      if (
+        line.qty <
+        Number(
+          tier.minQty || 0
+        )
+      ) {
+        return;
+      }
+
+
+      let d = 0;
+
 
       if (
         tier.discountPercent != null
       ) {
 
-        best =
-          Math.max(
-            best,
-            subtotal *
-            Number(
-              tier.discountPercent
-            ) /
-            100
-          );
+        d =
+          line.lineOriginal *
+          Number(
+            tier.discountPercent
+          ) /
+          100;
       }
 
 
@@ -690,17 +703,159 @@ function kpSpendSaveDiscount(
         tier.discountAmount != null
       ) {
 
-        best =
-          Math.max(
-            best,
-            Number(
-              tier.discountAmount
-            )
+        d =
+          Number(
+            tier.discountAmount
+          ) *
+          line.qty;
+      }
+
+
+      best =
+        Math.max(
+          best,
+          d
+        );
+    }
+  );
+
+
+  return Math.min(
+    line.lineTotal,
+    Math.round(best)
+  );
+}
+
+
+/* ======================================================
+   BUY X GET Y
+====================================================== */
+
+function kpBuyXGetYDiscount(
+  line,
+  offer
+) {
+
+  if (
+    offer.type !==
+    "buy_x_get_y"
+  ) {
+    return 0;
+  }
+
+
+  const buy =
+    Math.max(
+      1,
+      Number(
+        offer.buyQty || 1
+      )
+    );
+
+
+  const get =
+    Math.max(
+      1,
+      Number(
+        offer.getQty || 1
+      )
+    );
+
+
+  const sets =
+    Math.floor(
+      line.qty /
+      (buy + get)
+    );
+
+
+  const freeQty =
+    sets * get;
+
+
+  return Math.min(
+    line.lineTotal,
+    Math.round(
+      freeQty *
+      line.unitPrice
+    )
+  );
+}
+
+
+/* ======================================================
+   SPEND & SAVE
+====================================================== */
+
+function kpSpendSaveDiscount(
+  subtotal,
+  offer
+) {
+
+  if (
+    offer.type !==
+    "spend_save"
+  ) {
+    return 0;
+  }
+
+
+  let best = 0;
+
+
+  const tiers =
+    Array.isArray(offer.tiers)
+      ? offer.tiers
+      : [];
+
+
+  tiers.forEach(
+    tier => {
+
+      if (
+        subtotal <
+        Number(
+          tier.minSpend || 0
+        )
+      ) {
+        return;
+      }
+
+
+      let d = 0;
+
+
+      if (
+        tier.discountPercent != null
+      ) {
+
+        d =
+          subtotal *
+          Number(
+            tier.discountPercent
+          ) /
+          100;
+      }
+
+
+      if (
+        tier.discountAmount != null
+      ) {
+
+        d =
+          Number(
+            tier.discountAmount
           );
       }
-    }
 
-  });
+
+      best =
+        Math.max(
+          best,
+          d
+        );
+    }
+  );
 
 
   if (
@@ -735,162 +890,7 @@ function kpSpendSaveDiscount(
 
   return Math.min(
     subtotal,
-    Math.max(
-      0,
-      Math.round(best)
-    )
-  );
-}
-
-
-/* ======================================================
-   BUY MORE / QUANTITY
-====================================================== */
-
-function kpBuyMoreSaveDiscount(
-  line
-) {
-
-  const offers =
-    kpProductOffers(
-      line.product
-    )
-    .filter(
-      o =>
-        o.type ===
-          "buy_more_save_more" ||
-        o.type ===
-          "quantity"
-    );
-
-
-  let best = 0;
-
-
-  offers.forEach(offer => {
-
-    const tiers =
-      Array.isArray(offer.tiers)
-        ? offer.tiers
-        : [];
-
-
-    tiers.forEach(tier => {
-
-      if (
-        line.qty >=
-        Number(
-          tier.minQty || 0
-        )
-      ) {
-
-        const price =
-          line.originalUnitPrice *
-          line.qty;
-
-
-        let discount = 0;
-
-
-        if (
-          tier.discountPercent != null
-        ) {
-
-          discount =
-            price *
-            Number(
-              tier.discountPercent
-            ) /
-            100;
-        }
-
-
-        if (
-          tier.discountAmount != null
-        ) {
-
-          discount =
-            Number(
-              tier.discountAmount
-            ) *
-            line.qty;
-        }
-
-
-        best =
-          Math.max(
-            best,
-            discount
-          );
-      }
-
-    });
-
-  });
-
-
-  return Math.min(
-    line.lineTotal,
-    Math.max(
-      0,
-      Math.round(best)
-    )
-  );
-}
-
-
-/* ======================================================
-   BUY X GET Y
-====================================================== */
-
-function kpBuyXGetYDiscount(
-  line,
-  offer
-) {
-
-  if (
-    offer.type !==
-    "buy_x_get_y"
-  ) {
-    return 0;
-  }
-
-
-  const buyQty =
-    Math.max(
-      1,
-      Number(
-        offer.buyQty || 1
-      )
-    );
-
-
-  const getQty =
-    Math.max(
-      1,
-      Number(
-        offer.getQty || 1
-      )
-    );
-
-
-  const sets =
-    Math.floor(
-      line.qty /
-      (buyQty + getQty)
-    );
-
-
-  const freeQty =
-    sets * getQty;
-
-
-  return Math.min(
-    line.lineTotal,
-    Math.round(
-      freeQty *
-      line.unitPrice
-    )
+    Math.round(best)
   );
 }
 
@@ -912,12 +912,8 @@ function kpComboDiscount(
 
 
   const ids =
-    Array.isArray(
-      offer.productIds
-    )
-      ? offer.productIds.map(
-          String
-        )
+    Array.isArray(offer.productIds)
+      ? offer.productIds.map(String)
       : [];
 
 
@@ -926,22 +922,19 @@ function kpComboDiscount(
   }
 
 
-  const matched =
-    ids.every(id =>
-      lines.some(
-        line =>
-          String(
-            line.product.id
-          ) === id &&
-          line.qty >=
-            Number(
-              offer.minQty || 1
-            )
-      )
+  const valid =
+    ids.every(
+      id =>
+        lines.some(
+          line =>
+            String(
+              line.product.id
+            ) === id
+        )
     );
 
 
-  if (!matched) {
+  if (!valid) {
     return 0;
   }
 
@@ -961,9 +954,11 @@ function kpComboDiscount(
 
         return (
           sum +
-          (line
-            ? line.unitPrice
-            : 0)
+          (
+            line
+              ? line.unitPrice
+              : 0
+          )
         );
 
       },
@@ -1019,6 +1014,106 @@ function kpComboDiscount(
 
 
 /* ======================================================
+   MIX & MATCH
+====================================================== */
+
+function kpMixMatchDiscount(
+  lines,
+  offer
+) {
+
+  if (
+    offer.type !==
+    "mix_match"
+  ) {
+    return 0;
+  }
+
+
+  const ids =
+    Array.isArray(offer.productIds)
+      ? offer.productIds.map(String)
+      : [];
+
+
+  const required =
+    Math.max(
+      1,
+      Number(
+        offer.requiredQty ||
+        offer.minQty ||
+        2
+      )
+    );
+
+
+  const matched =
+    lines.filter(
+      line =>
+        ids.includes(
+          String(
+            line.product.id
+          )
+        )
+    );
+
+
+  const totalQty =
+    matched.reduce(
+      (s, x) =>
+        s + x.qty,
+      0
+    );
+
+
+  if (
+    totalQty <
+    required
+  ) {
+    return 0;
+  }
+
+
+  const base =
+    matched.reduce(
+      (s, x) =>
+        s + x.lineTotal,
+      0
+    );
+
+
+  if (
+    offer.discountPercent != null
+  ) {
+
+    return Math.round(
+      base *
+      Number(
+        offer.discountPercent
+      ) /
+      100
+    );
+  }
+
+
+  if (
+    offer.discountAmount != null
+  ) {
+
+    return Math.min(
+      base,
+      Number(
+        offer.discountAmount
+      )
+    );
+  }
+
+
+  return 0;
+}
+
+
+/* ======================================================
    COMPLETE CART CALCULATION
 ====================================================== */
 
@@ -1033,16 +1128,16 @@ function kpCalculateCart(
 
   let subtotal =
     lines.reduce(
-      (sum, item) =>
-        sum + item.lineTotal,
+      (sum, line) =>
+        sum + line.lineTotal,
       0
     );
 
 
   const originalSubtotal =
     lines.reduce(
-      (sum, item) =>
-        sum + item.lineOriginal,
+      (sum, line) =>
+        sum + line.lineOriginal,
       0
     );
 
@@ -1054,69 +1149,119 @@ function kpCalculateCart(
 
   const appliedOffers = [];
 
-
-  let freeShipping =
-    false;
-
-
   let cashback = 0;
 
+  let freeShipping = false;
 
   let freeGifts = [];
 
 
-  /* Buy More Save More */
+  /* =========================
+     QUANTITY OFFERS
+  ========================= */
 
-  lines.forEach(line => {
+  lines.forEach(
+    line => {
 
-    const d =
-      kpBuyMoreSaveDiscount(
-        line
+      kpProductOffers(
+        line.product
+      ).forEach(
+        offer => {
+
+          const d =
+            kpQuantityDiscount(
+              line,
+              offer
+            );
+
+
+          if (d > 0) {
+
+            discount += d;
+
+            subtotal =
+              Math.max(
+                0,
+                subtotal - d
+              );
+
+            appliedOffers.push(
+              offer
+            );
+          }
+        }
       );
-
-
-    if (d > 0) {
-
-      discount += d;
-
-      subtotal =
-        Math.max(
-          0,
-          subtotal - d
-        );
     }
+  );
 
-  });
 
-
-  /* Buy X Get Y */
+  /* =========================
+     BUY X GET Y
+  ========================= */
 
   kpActiveOffers()
-    .forEach(offer => {
-
-      if (
-        offer.type !==
-        "buy_x_get_y"
-      ) {
-        return;
-      }
-
-
-      lines.forEach(line => {
+    .forEach(
+      offer => {
 
         if (
-          !kpOfferMatchesProduct(
-            offer,
-            line.product
-          )
+          offer.type !==
+          "buy_x_get_y"
         ) {
           return;
         }
 
 
+        lines.forEach(
+          line => {
+
+            if (
+              !kpOfferMatchesProduct(
+                offer,
+                line.product
+              )
+            ) {
+              return;
+            }
+
+
+            const d =
+              kpBuyXGetYDiscount(
+                line,
+                offer
+              );
+
+
+            if (d > 0) {
+
+              discount += d;
+
+              subtotal =
+                Math.max(
+                  0,
+                  subtotal - d
+                );
+
+              appliedOffers.push(
+                offer
+              );
+            }
+          }
+        );
+      }
+    );
+
+
+  /* =========================
+     SPEND & SAVE
+  ========================= */
+
+  kpActiveOffers()
+    .forEach(
+      offer => {
+
         const d =
-          kpBuyXGetYDiscount(
-            line,
+          kpSpendSaveDiscount(
+            subtotal,
             offer
           );
 
@@ -1131,80 +1276,83 @@ function kpCalculateCart(
               subtotal - d
             );
 
+          appliedOffers.push(
+            offer
+          );
+        }
+      }
+    );
+
+
+  /* =========================
+     COMBO
+  ========================= */
+
+  kpActiveOffers()
+    .forEach(
+      offer => {
+
+        const d =
+          kpComboDiscount(
+            lines,
+            offer
+          );
+
+
+        if (d > 0) {
+
+          discount += d;
+
+          subtotal =
+            Math.max(
+              0,
+              subtotal - d
+            );
 
           appliedOffers.push(
             offer
           );
         }
-
-      });
-
-    });
+      }
+    );
 
 
-  /* Spend & Save */
+  /* =========================
+     MIX & MATCH
+  ========================= */
 
   kpActiveOffers()
-    .forEach(offer => {
+    .forEach(
+      offer => {
 
-      const d =
-        kpSpendSaveDiscount(
-          subtotal,
-          offer
-        );
-
-
-      if (d > 0) {
-
-        discount += d;
-
-        subtotal =
-          Math.max(
-            0,
-            subtotal - d
+        const d =
+          kpMixMatchDiscount(
+            lines,
+            offer
           );
 
 
-        appliedOffers.push(
-          offer
-        );
-      }
+        if (d > 0) {
 
-    });
+          discount += d;
 
+          subtotal =
+            Math.max(
+              0,
+              subtotal - d
+            );
 
-  /* Combo */
-
-  kpActiveOffers()
-    .forEach(offer => {
-
-      const d =
-        kpComboDiscount(
-          lines,
-          offer
-        );
-
-
-      if (d > 0) {
-
-        discount += d;
-
-        subtotal =
-          Math.max(
-            0,
-            subtotal - d
+          appliedOffers.push(
+            offer
           );
-
-
-        appliedOffers.push(
-          offer
-        );
+        }
       }
+    );
 
-    });
 
-
-  /* Coupon */
+  /* =========================
+     COUPON
+  ========================= */
 
   if (
     options.couponCode
@@ -1213,11 +1361,11 @@ function kpCalculateCart(
     const coupon =
       kpActiveOffers()
         .find(
-          o =>
-            o.type ===
-              "coupon" &&
+          offer =>
+            offer.type ===
+            "coupon" &&
             String(
-              o.code || ""
+              offer.code || ""
             ).toUpperCase() ===
             String(
               options.couponCode
@@ -1257,10 +1405,7 @@ function kpCalculateCart(
       d =
         Math.min(
           subtotal,
-          Math.max(
-            0,
-            Math.round(d)
-          )
+          Math.round(d)
         );
 
 
@@ -1275,113 +1420,124 @@ function kpCalculateCart(
   }
 
 
-  /* Free Shipping */
+  /* =========================
+     FREE SHIPPING
+  ========================= */
 
   kpActiveOffers()
-    .forEach(offer => {
+    .forEach(
+      offer => {
 
-      if (
-        offer.type !==
-        "free_shipping"
-      ) {
-        return;
-      }
-
-
-      if (
-        offer.minSpend == null ||
-        subtotal >=
-          Number(
-            offer.minSpend
-          )
-      ) {
-
-        freeShipping = true;
-
-        appliedOffers.push(
-          offer
-        );
-      }
-
-    });
+        if (
+          offer.type !==
+          "free_shipping"
+        ) {
+          return;
+        }
 
 
-  /* Cashback */
+        if (
+          offer.minSpend == null ||
+          subtotal >=
+            Number(
+              offer.minSpend
+            )
+        ) {
 
-  kpActiveOffers()
-    .forEach(offer => {
+          freeShipping = true;
 
-      if (
-        offer.type !==
-        "cashback"
-      ) {
-        return;
-      }
-
-
-      if (
-        offer.cashbackPercent != null
-      ) {
-
-        cashback +=
-          subtotal *
-          Number(
-            offer.cashbackPercent
-          ) /
-          100;
-      }
-
-
-      if (
-        offer.cashbackAmount != null
-      ) {
-
-        cashback +=
-          Number(
-            offer.cashbackAmount
+          appliedOffers.push(
+            offer
           );
+        }
       }
+    );
 
 
-      appliedOffers.push(
-        offer
-      );
-
-    });
-
-
-  /* Free Gift */
+  /* =========================
+     FREE GIFT
+  ========================= */
 
   kpActiveOffers()
-    .forEach(offer => {
+    .forEach(
+      offer => {
 
-      if (
-        offer.type !==
-        "free_gift"
-      ) {
-        return;
+        if (
+          offer.type !==
+          "free_gift"
+        ) {
+          return;
+        }
+
+
+        if (
+          offer.minSpend == null ||
+          subtotal >=
+            Number(
+              offer.minSpend
+            )
+        ) {
+
+          freeGifts.push(
+            ...(
+              offer.giftProductIds ||
+              []
+            )
+          );
+
+          appliedOffers.push(
+            offer
+          );
+        }
       }
+    );
 
 
-      if (
-        offer.minSpend == null ||
-        subtotal >=
-          Number(
-            offer.minSpend
-          )
-      ) {
+  /* =========================
+     CASHBACK
+  ========================= */
 
-        freeGifts.push(
-          ...(offer.giftProductIds || [])
-        );
+  kpActiveOffers()
+    .forEach(
+      offer => {
+
+        if (
+          offer.type !==
+          "cashback"
+        ) {
+          return;
+        }
+
+
+        if (
+          offer.cashbackPercent != null
+        ) {
+
+          cashback +=
+            subtotal *
+            Number(
+              offer.cashbackPercent
+            ) /
+            100;
+        }
+
+
+        if (
+          offer.cashbackAmount != null
+        ) {
+
+          cashback +=
+            Number(
+              offer.cashbackAmount
+            );
+        }
 
 
         appliedOffers.push(
           offer
         );
       }
-
-    });
+    );
 
 
   return {
@@ -1420,15 +1576,21 @@ function kpCalculateCart(
     freeShipping,
 
     freeGifts:
-      [...new Set(
-        freeGifts
-      )],
+      [
+        ...new Set(
+          freeGifts
+        )
+      ],
 
     appliedOffers:
       [
         ...new Map(
           appliedOffers.map(
-            o => [o.id, o]
+            offer =>
+              [
+                offer.id,
+                offer
+              ]
           )
         ).values()
       ]
@@ -1437,41 +1599,32 @@ function kpCalculateCart(
 
 
 /* ======================================================
-   OFFER PRODUCTS FIRST
+   SORT OFFER PRODUCTS FIRST
 ====================================================== */
 
 function kpSortProductsWithOffers(
-  list = [],
-  customer = {}
+  list = []
 ) {
 
   return [...list].sort(
     (a, b) => {
 
       const ao =
-        kpProductOffers(
-          a,
-          customer
-        );
-
+        kpProductOffers(a);
 
       const bo =
-        kpProductOffers(
-          b,
-          customer
+        kpProductOffers(b);
+
+
+      if (
+        ao.length !==
+        bo.length
+      ) {
+
+        return (
+          bo.length -
+          ao.length
         );
-
-
-      const ah =
-        ao.length ? 1 : 0;
-
-
-      const bh =
-        bo.length ? 1 : 0;
-
-
-      if (ah !== bh) {
-        return bh - ah;
       }
 
 
@@ -1501,12 +1654,7 @@ function kpSortProductsWithOffers(
           : -1;
 
 
-      if (ap !== bp) {
-        return bp - ap;
-      }
-
-
-      return 0;
+      return bp - ap;
     }
   );
 }
@@ -1520,14 +1668,7 @@ function kpOfferCard(
   offer
 ) {
 
-  const detail =
-    kpOfferDiscountText(
-      offer
-    );
-
-
   return `
-
     <article
       class="kp-offer-card"
       data-offer-id="${offer.id}"
@@ -1537,30 +1678,25 @@ function kpOfferCard(
         🔥
       </div>
 
-
       <div class="kp-offer-copy">
 
         <span class="kp-offer-tag">
           SPECIAL OFFER
         </span>
 
-
         <h3>
           ${offer.title || "Special Offer"}
         </h3>
-
 
         <p>
           ${offer.message || ""}
         </p>
 
-
         <strong>
-          ${detail}
+          ${kpOfferDiscountText(offer)}
         </strong>
 
       </div>
-
 
       <button
         onclick="kpShowOfferProducts('${offer.id}')"
@@ -1569,7 +1705,6 @@ function kpOfferCard(
       </button>
 
     </article>
-
   `;
 }
 
@@ -1594,13 +1729,11 @@ function kpRenderOffers() {
 
     box.innerHTML =
       active.length
-
         ? active
             .map(
               kpOfferCard
             )
             .join("")
-
         : `
           <div class="kp-no-offer">
             এই মুহূর্তে কোনো সক্রিয় অফার নেই।
@@ -1619,9 +1752,7 @@ function kpRenderOffers() {
 
     home.innerHTML =
       active.length
-
         ? `
-
           <div class="kp-home-offer">
 
             <div>
@@ -1630,18 +1761,15 @@ function kpRenderOffers() {
                 🔥 এখন চলছে
               </span>
 
-
               <h2>
                 ${active[0].title}
               </h2>
-
 
               <p>
                 ${active[0].message || ""}
               </p>
 
             </div>
-
 
             <button
               onclick="kpShowOfferProducts('${active[0].id}')"
@@ -1650,16 +1778,14 @@ function kpRenderOffers() {
             </button>
 
           </div>
-
         `
-
         : "";
   }
 }
 
 
 /* ======================================================
-   SHOW OFFER PRODUCTS
+   SHOW ONLY THAT OFFER'S PRODUCTS
 ====================================================== */
 
 function kpShowOfferProducts(
@@ -1669,7 +1795,8 @@ function kpShowOfferProducts(
   const offer =
     kpOffers.find(
       o =>
-        o.id === offerId
+        String(o.id) ===
+        String(offerId)
     );
 
 
@@ -1683,46 +1810,44 @@ function kpShowOfferProducts(
 
   const list =
     kpSortProductsWithOffers(
-
       products.filter(
-        p =>
+        product =>
           kpOfferMatchesProduct(
             offer,
-            p
+            product
           )
       )
-
     );
 
 
   if (
-    typeof renderProducts ===
+    typeof window.renderProducts ===
     "function"
   ) {
 
-    renderProducts(
+    window.renderProducts(
       list
     );
   }
 
 
   if (
-    typeof scrollToSection ===
+    typeof window.scrollToSection ===
     "function"
   ) {
 
-    scrollToSection(
+    window.scrollToSection(
       "featured"
     );
   }
 
 
   if (
-    typeof toast ===
+    typeof window.toast ===
     "function"
   ) {
 
-    toast(
+    window.toast(
       offer.title ||
       "Offer"
     );
@@ -1731,336 +1856,46 @@ function kpShowOfferProducts(
 
 
 /* ======================================================
-   UPCOMING OFFERS
+   OFFER PRODUCT CARD
 ====================================================== */
 
-function kpUpcomingOffers() {
+function kpOfferProductCard(
+  product
+) {
 
-  return kpOffers.filter(
-    offer =>
-      offer.active !== false &&
-      !kpOfferIsActive(
-        offer
-      )
-  );
-}
-
-
-function kpRenderUpcomingOffers() {
-
-  const box =
-    document.querySelector(
-      "#upcomingOffers"
+  const original =
+    Number(
+      product.price || 0
     );
 
 
-  if (!box) {
-    return;
-  }
+  const finalPrice =
+    kpOfferPrice(
+      product
+    );
 
-
-  const upcoming =
-    kpUpcomingOffers();
-
-
-  box.innerHTML =
-    upcoming.length
-
-      ? upcoming
-          .map(
-            offer => `
-
-              <div class="kp-upcoming">
-
-                <span>
-                  ⏳
-                </span>
-
-
-                <div>
-
-                  <b>
-                    ${
-                      offer.title ||
-                      "Upcoming Offer"
-                    }
-                  </b>
-
-
-                  <small>
-                    ${
-                      offer.message ||
-                      "শীঘ্রই অফার শুরু হবে"
-                    }
-                  </small>
-
-                </div>
-
-              </div>
-
-            `
-          )
-          .join("")
-   /* ======================================================
-   CART + CHECKOUT OFFER PRICE FIX
-====================================================== */
-
-window.cartHTML = function () {
-
-  if (!cart.length) {
-    return `
-      <h2>আপনার কার্ট</h2>
-      <div class="empty">
-        কার্ট এখন খালি।
-      </div>
-    `;
-  }
-
-  const calc = kpCalculateCart(cart);
-
-  const rows = calc.lines.map(line => {
-
-    const p = line.product;
-    const original = line.originalUnitPrice;
-    const finalPrice = line.unitPrice;
-    const discounted = finalPrice < original;
-
-    return `
-      <div class="cart-item">
-
-        <img src="${p.img}">
-
-        <div class="grow">
-
-          <b>${p.name}</b>
-
-          <div>
-            ${kpMoney(finalPrice)}
-
-            ${
-              discounted
-                ? `
-                  <span style="
-                    text-decoration:line-through;
-                    color:#999;
-                    margin-left:6px;
-                  ">
-                    ${kpMoney(original)}
-                  </span>
-                `
-                : ""
-            }
-          </div>
-
-          ${
-            discounted
-              ? `
-                <small style="
-                  color:#078b5b;
-                  font-weight:700;
-                ">
-                  ${kpOfferDiscountText(
-                    kpProductOffers(p)[0]
-                  )}
-                </small>
-              `
-              : ""
-          }
-
-          <div class="qty">
-            <button onclick="changeQty(${p.id},-1)">−</button>
-            ${line.qty}
-            <button onclick="changeQty(${p.id},1)">+</button>
-          </div>
-
-        </div>
-
-        <button onclick="removeCart(${p.id})">×</button>
-
-      </div>
-    `;
-  }).join("");
-
-  return `
-    <h2>আপনার কার্ট</h2>
-
-    ${rows}
-
-    ${
-      calc.discount > 0
-        ? `
-          <div style="
-            display:flex;
-            justify-content:space-between;
-            color:#078b5b;
-            font-weight:700;
-            margin-top:12px;
-          ">
-            <span>Offer Discount</span>
-            <span>-${kpMoney(calc.discount)}</span>
-          </div>
-        `
-        : ""
-    }
-
-    <div class="panel-total">
-      <span>মোট</span>
-      <span>${kpMoney(calc.subtotal)}</span>
-    </div>
-
-    <button class="full" onclick="checkout()">
-      Checkout →
-    </button>
-  `;
-};
-
-
-/* ======================================================
-   CHECKOUT
-====================================================== */
-
-window.checkout = function () {
-
-  const calc = kpCalculateCart(cart);
-
-  document.querySelector("#panel").innerHTML = `
-
-    <button
-      class="panel-close"
-      onclick="openPanel('cart')"
-    >
-      ←
-    </button>
-
-    <h2>Checkout</h2>
-
-    <div class="field">
-      <label>নাম</label>
-      <input id="coName" placeholder="আপনার নাম">
-    </div>
-
-    <div class="field">
-      <label>মোবাইল</label>
-      <input id="coMobile" placeholder="01XXXXXXXXX">
-    </div>
-
-    <div class="field">
-      <label>ডেলিভারি ঠিকানা</label>
-      <textarea
-        id="coAddress"
-        rows="3"
-        placeholder="বাসা/রোড/এলাকা"
-      ></textarea>
-    </div>
-
-    <div class="panel-total">
-      <span>মূল দাম</span>
-      <span>${kpMoney(calc.originalSubtotal)}</span>
-    </div>
-
-    ${
-      calc.discount > 0
-        ? `
-          <div style="
-            display:flex;
-            justify-content:space-between;
-            color:#078b5b;
-            font-weight:700;
-          ">
-            <span>Offer Discount</span>
-            <span>-${kpMoney(calc.discount)}</span>
-          </div>
-        `
-        : ""
-    }
-
-    <div class="panel-total">
-      <span>Product Total</span>
-      <span>${kpMoney(calc.subtotal)}</span>
-    </div>
-
-    <button
-      class="full"
-      onclick="placeDemoOrder()"
-    >
-      Order Confirm
-    </button>
-  `;
-};
-
-      : "";
-}
-
-
-/* ======================================================
-   ADMIN-READY API
-====================================================== */
-
-window.KP_OFFER_ENGINE = {
-
-  offers:
-    kpOffers,
-
-  active:
-    kpActiveOffers,
-
-  isActive:
-    kpOfferIsActive,
-
-  productOffers:
-    kpProductOffers,
-
-  price:
-    kpOfferPrice,
-
-  calculateCart:
-    kpCalculateCart,
-
-  sortProducts:
-    kpSortProductsWithOffers,
-
-  render:
-    kpRenderOffers,
-
-  upcoming:
-    kpUpcomingOffers
-
-};
-
-
-/* ======================================================
-   START
-====================================================== */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
-
-    kpRenderOffers();
-
-    kpRenderUpcomingOffers();
-
-  }
-);
-/* ======================================================
-   OFFER PRODUCT VIEW FIX
-====================================================== */
-
-function kpOfferProductCard(p) {
-
-  const original = Number(p.price || 0);
-  const finalPrice = kpOfferPrice(p);
 
   const discounted =
-    finalPrice < original;
+    finalPrice <
+    original;
+
 
   const offer =
-    kpProductOffers(p)[0];
+    kpProductOffers(
+      product
+    )[0];
 
-  const badge =
+
+  const label =
     discounted
-      ? kpOfferDiscountText(offer)
-      : (p.badge || "");
+      ? kpOfferDiscountText(
+          offer
+        )
+      : (
+          product.badge ||
+          ""
+        );
+
 
   return `
     <article class="product">
@@ -2068,21 +1903,21 @@ function kpOfferProductCard(p) {
       <div class="product-image">
 
         <img
-          src="${p.img}"
-          alt="${p.name}"
+          src="${product.img}"
+          alt="${product.name}"
           loading="lazy"
         >
 
         <span class="badge">
-          ${badge}
+          ${label}
         </span>
 
         <button
           class="heart"
-          onclick="toggleWishlist(${p.id})"
+          onclick="toggleWishlist(${product.id})"
         >
           ${
-            wishlist.includes(p.id)
+            wishlist.includes(product.id)
               ? "♥"
               : "♡"
           }
@@ -2094,18 +1929,16 @@ function kpOfferProductCard(p) {
       <div class="product-info">
 
         <small>
-          ${p.cat}
+          ${product.cat}
         </small>
 
-
         <div class="product-name">
-          ${p.name}
+          ${product.name}
         </div>
-
 
         <div>
           <span class="rating">
-            ${p.rating}
+            ${product.rating || ""}
           </span>
         </div>
 
@@ -2116,6 +1949,7 @@ function kpOfferProductCard(p) {
             ${kpMoney(finalPrice)}
           </span>
 
+
           ${
             discounted
               ? `
@@ -2124,40 +1958,40 @@ function kpOfferProductCard(p) {
                 </span>
               `
               : (
-                  p.old
+                  product.old
                     ? `
                       <span class="old">
-                        ${kpMoney(p.old)}
+                        ${kpMoney(product.old)}
                       </span>
                     `
                     : ""
                 )
           }
 
+
+          ${
+            discounted
+              ? `
+                <small
+                  style="
+                    display:block;
+                    margin-top:4px;
+                    color:#078b5b;
+                    font-weight:700;
+                  "
+                >
+                  ${label}
+                </small>
+              `
+              : ""
+          }
+
         </div>
-
-
-        ${
-          discounted
-            ? `
-              <small
-                style="
-                  display:block;
-                  margin-top:4px;
-                  color:#078b5b;
-                  font-weight:700;
-                "
-              >
-                ${kpOfferDiscountText(offer)}
-              </small>
-            `
-            : ""
-        }
 
 
         <button
           class="add"
-          onclick="addCart(${p.id})"
+          onclick="addCart(${product.id})"
         >
           কার্টে যোগ করুন
         </button>
@@ -2173,635 +2007,805 @@ function kpOfferProductCard(p) {
    OFFER-AWARE PRODUCT RENDER
 ====================================================== */
 
-window.renderProducts = function(list) {
+window.renderProducts =
+  function(list) {
+
+    const box =
+      document.querySelector(
+        "#productsGrid"
+      );
+
+
+    if (!box) {
+      return;
+    }
+
+
+    const safeList =
+      Array.isArray(list)
+        ? list
+        : [];
+
+
+    const sorted =
+      kpSortProductsWithOffers(
+        safeList
+      );
+
+
+    box.innerHTML =
+      sorted.length
+        ? sorted
+            .map(
+              kpOfferProductCard
+            )
+            .join("")
+        : `
+          <div class="empty">
+            কোনো পণ্য পাওয়া যায়নি।
+          </div>
+        `;
+  };
+
+
+/* ======================================================
+   CART
+====================================================== */
+
+window.cartHTML =
+  function() {
+
+    if (!cart.length) {
+
+      return `
+        <h2>আপনার কার্ট</h2>
+
+        <div class="empty">
+          কার্ট এখন খালি।<br><br>
+          পছন্দের পণ্য কার্টে যোগ করুন।
+        </div>
+      `;
+    }
+
+
+    const calc =
+      kpCalculateCart(
+        cart
+      );
+
+
+    const rows =
+      calc.lines
+        .map(
+          line => {
+
+            const p =
+              line.product;
+
+            const original =
+              line.originalUnitPrice;
+
+            const price =
+              line.unitPrice;
+
+
+            const discounted =
+              price < original;
+
+
+            return `
+              <div class="cart-item">
+
+                <img
+                  src="${p.img}"
+                >
+
+                <div class="grow">
+
+                  <b>
+                    ${p.name}
+                  </b>
+
+                  <div>
+
+                    <span>
+                      ${kpMoney(price)}
+                    </span>
+
+
+                    ${
+                      discounted
+                        ? `
+                          <span
+                            style="
+                              text-decoration:
+                                line-through;
+                              color:#999;
+                              margin-left:6px;
+                            "
+                          >
+                            ${kpMoney(original)}
+                          </span>
+                        `
+                        : ""
+                    }
+
+                  </div>
+
+
+                  ${
+                    discounted
+                      ? `
+                        <small
+                          style="
+                            color:#078b5b;
+                            font-weight:700;
+                          "
+                        >
+                          ${
+                            kpOfferDiscountText(
+                              kpProductOffers(p)[0]
+                            )
+                          }
+                        </small>
+                      `
+                      : ""
+                  }
+
+
+                  <div class="qty">
+
+                    <button
+                      onclick="changeQty(${p.id},-1)"
+                    >
+                      −
+                    </button>
+
+                    ${line.qty}
+
+                    <button
+                      onclick="changeQty(${p.id},1)"
+                    >
+                      +
+                    </button>
+
+                  </div>
+
+                </div>
+
+
+                <button
+                  onclick="removeCart(${p.id})"
+                >
+                  ×
+                </button>
+
+              </div>
+            `;
+          }
+        )
+        .join("");
+
+
+    return `
+      <h2>
+        আপনার কার্ট
+      </h2>
+
+      ${rows}
+
+
+      ${
+        calc.discount > 0
+          ? `
+            <div
+              style="
+                display:flex;
+                justify-content:
+                  space-between;
+                color:#078b5b;
+                font-weight:700;
+                margin-top:12px;
+              "
+            >
+
+              <span>
+                Offer Discount
+              </span>
+
+              <span>
+                -${kpMoney(calc.discount)}
+              </span>
+
+            </div>
+          `
+          : ""
+      }
+
+
+      <div class="panel-total">
+
+        <span>
+          মোট
+        </span>
+
+        <span>
+          ${kpMoney(calc.subtotal)}
+        </span>
+
+      </div>
+
+
+      <button
+        class="full"
+        onclick="checkout()"
+      >
+        Checkout →
+      </button>
+    `;
+  };
+
+
+/* ======================================================
+   CHECKOUT
+====================================================== */
+
+window.checkout =
+  function() {
+
+    if (!cart.length) {
+
+      if (
+        typeof toast ===
+        "function"
+      ) {
+        toast(
+          "কার্ট খালি"
+        );
+      }
+
+      return;
+    }
+
+
+    const calc =
+      kpCalculateCart(
+        cart
+      );
+
+
+    document.querySelector(
+      "#panel"
+    ).innerHTML = `
+
+      <button
+        class="panel-close"
+        onclick="openPanel('cart')"
+      >
+        ←
+      </button>
+
+
+      <h2>
+        Checkout
+      </h2>
+
+
+      <div class="field">
+
+        <label>
+          নাম
+        </label>
+
+        <input
+          id="coName"
+          placeholder="আপনার নাম"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          মোবাইল
+        </label>
+
+        <input
+          id="coMobile"
+          placeholder="01XXXXXXXXX"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          ডেলিভারি ঠিকানা
+        </label>
+
+        <textarea
+          id="coAddress"
+          rows="3"
+          placeholder="বাসা/রোড/এলাকা"
+        ></textarea>
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          Payment Method
+        </label>
+
+        <select id="coPayment">
+
+          <option>
+            Cash on Delivery
+          </option>
+
+          <option>
+            Online Payment (পরে যুক্ত হবে)
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <div class="panel-total">
+
+        <span>
+          মূল দাম
+        </span>
+
+        <span>
+          ${kpMoney(
+            calc.originalSubtotal
+          )}
+        </span>
+
+      </div>
+
+
+      ${
+        calc.discount > 0
+          ? `
+            <div
+              class="panel-total"
+              style="
+                color:#078b5b;
+                font-weight:700;
+              "
+            >
+
+              <span>
+                Offer Discount
+              </span>
+
+              <span>
+                -${kpMoney(
+                  calc.discount
+                )}
+              </span>
+
+            </div>
+          `
+          : ""
+      }
+
+
+      <div class="panel-total">
+
+        <span>
+          Product Total
+        </span>
+
+        <span>
+          ${kpMoney(
+            calc.subtotal
+          )}
+        </span>
+
+      </div>
+
+
+      ${
+        calc.freeShipping
+          ? `
+            <div
+              style="
+                color:#078b5b;
+                font-weight:700;
+                margin:10px 0;
+              "
+            >
+              🎁 Free Shipping
+            </div>
+          `
+          : ""
+      }
+
+
+      ${
+        calc.cashback > 0
+          ? `
+            <div
+              style="
+                color:#078b5b;
+                font-weight:700;
+                margin:10px 0;
+              "
+            >
+              Cashback:
+              ${kpMoney(
+                calc.cashback
+              )}
+            </div>
+          `
+          : ""
+      }
+
+
+      <button
+        class="full"
+        onclick="placeDemoOrder()"
+      >
+        Order Confirm
+      </button>
+    `;
+  };
+
+
+/* ======================================================
+   ORDER
+====================================================== */
+
+window.placeDemoOrder =
+  async function() {
+
+    const name =
+      document.querySelector(
+        "#coName"
+      )?.value.trim();
+
+
+    const mobile =
+      document.querySelector(
+        "#coMobile"
+      )?.value.trim();
+
+
+    const address =
+      document.querySelector(
+        "#coAddress"
+      )?.value.trim();
+
+
+    if (
+      !name ||
+      !mobile ||
+      !address
+    ) {
+
+      toast(
+        "নাম, মোবাইল ও ঠিকানা দিন"
+      );
+
+      return;
+    }
+
+
+    const calc =
+      kpCalculateCart(
+        cart
+      );
+
+
+    const items =
+      calc.lines.map(
+        line => ({
+
+          productId:
+            line.product.id,
+
+          quantity:
+            line.qty,
+
+          unitPrice:
+            line.unitPrice
+
+        })
+      );
+
+
+    if (
+      typeof API_BASE !==
+        "undefined" &&
+      API_BASE &&
+      typeof kpToken !==
+        "undefined" &&
+      kpToken
+    ) {
+
+      try {
+
+        const result =
+          await apiCreateOrder({
+
+            customerName:
+              name,
+
+            mobile,
+
+            address,
+
+            paymentMethod:
+              "COD",
+
+            items
+          });
+
+
+        cart = [];
+
+        save();
+
+
+        document.querySelector(
+          "#panel"
+        ).innerHTML = `
+
+          <button
+            class="panel-close"
+            onclick="closePanel()"
+          >
+            ×
+          </button>
+
+          <h2>
+            অর্ডার গ্রহণ করা হয়েছে ✓
+          </h2>
+
+          <p>
+            Order ID:
+          </p>
+
+          <h2>
+            ${
+              result.orderId ||
+              result.id
+            }
+          </h2>
+
+          <p
+            style="color:#718078"
+          >
+            আপনার অর্ডার backend-এ
+            সংরক্ষিত হয়েছে।
+          </p>
+
+          <button
+            class="full"
+            onclick="closePanel()"
+          >
+            ঠিক আছে
+          </button>
+        `;
+
+        return;
+
+      } catch (error) {
+
+        toast(
+          "Server order তৈরি হয়নি"
+        );
+
+        return;
+      }
+    }
+
+
+    const order =
+      "KP-" +
+      Math.floor(
+        10000 +
+        Math.random() *
+        89999
+      );
+
+
+    localStorage.setItem(
+      "kp_last_order",
+      JSON.stringify({
+
+        order,
+
+        name,
+
+        mobile,
+
+        address,
+
+        items: cart,
+
+        total:
+          calc.subtotal,
+
+        originalTotal:
+          calc.originalSubtotal,
+
+        discount:
+          calc.discount,
+
+        date:
+          new Date().toISOString()
+
+      })
+    );
+
+
+    cart = [];
+
+    save();
+
+
+    document.querySelector(
+      "#panel"
+    ).innerHTML = `
+
+      <button
+        class="panel-close"
+        onclick="closePanel()"
+      >
+        ×
+      </button>
+
+      <h2>
+        Demo Order ✓
+      </h2>
+
+      <p>
+        Order ID:
+      </p>
+
+      <h2>
+        ${order}
+      </h2>
+
+      <p
+        style="color:#718078"
+      >
+        অর্ডারটি সফলভাবে তৈরি হয়েছে।
+      </p>
+
+      <button
+        class="full"
+        onclick="closePanel()"
+      >
+        ঠিক আছে
+      </button>
+    `;
+  };
+
+
+/* ======================================================
+   ENGINE API
+====================================================== */
+
+window.KP_OFFER_ENGINE = {
+
+  offers:
+    kpOffers,
+
+  active:
+    kpActiveOffers,
+
+  price:
+    kpOfferPrice,
+
+  productOffers:
+    kpProductOffers,
+
+  calculateCart:
+    kpCalculateCart,
+
+  cartProducts:
+    kpCartProducts,
+
+  sortProducts:
+    kpSortProductsWithOffers,
+
+  renderProducts:
+    window.renderProducts
+
+};
+
+
+/* ======================================================
+   INITIALIZE
+====================================================== */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  function() {
+
+    kpRenderOffers();
+
+    if (
+      typeof kpRenderUpcomingOffers ===
+      "function"
+    ) {
+      kpRenderUpcomingOffers();
+    }
+
+  }
+);
+
+
+/* ======================================================
+   UPCOMING OFFERS
+====================================================== */
+
+function kpRenderUpcomingOffers() {
 
   const box =
     document.querySelector(
-      "#productsGrid"
+      "#upcomingOffers"
     );
 
-  if (!box) return;
+
+  if (!box) {
+    return;
+  }
 
 
-  const safeList =
-    Array.isArray(list)
-      ? list
-      : [];
-
-
-  const sorted =
-    kpSortProductsWithOffers(
-      safeList
+  const upcoming =
+    kpOffers.filter(
+      offer =>
+        offer.active !== false &&
+        !kpOfferIsActive(offer)
     );
 
 
   box.innerHTML =
-    sorted.length
-
-      ? sorted
+    upcoming.length
+      ? upcoming
           .map(
-            kpOfferProductCard
+            offer => `
+
+              <div
+                class="kp-upcoming"
+              >
+
+                <span>
+                  ⏳
+                </span>
+
+                <div>
+
+                  <b>
+                    ${
+                      offer.title ||
+                      "Upcoming Offer"
+                    }
+                  </b>
+
+                  <small>
+                    ${
+                      offer.message ||
+                      "শীঘ্রই অফার শুরু হবে"
+                    }
+                  </small>
+
+                </div>
+
+              </div>
+
+            `
           )
           .join("")
-
-      : `
-        <div class="empty">
-          কোনো পণ্য পাওয়া যায়নি।
-        </div>
-      `;
-};
-
-
-/* ======================================================
-   OFFER BUTTON → ONLY THAT OFFER'S PRODUCTS
-====================================================== */
-
-window.kpShowOfferProducts =
-function(offerId) {
-
-  const offer =
-    kpOffers.find(
-      o =>
-        String(o.id) ===
-        String(offerId)
-    );
-
-
-  if (
-    !offer ||
-    typeof products ===
-      "undefined"
-  ) {
-
-    if (
-      typeof toast ===
-      "function"
-    ) {
-      toast(
-        "এই অফারের পণ্য পাওয়া যায়নি"
-      );
-    }
-
-    return;
-  }
-
-
-  const list =
-    products.filter(
-      product =>
-        kpOfferMatchesProduct(
-          offer,
-          product
-        )
-    );
-
-
-  /* শুধুমাত্র এই offer-এর product */
-  window.renderProducts(
-    list
-  );
-
-
-  const featured =
-    document.querySelector(
-      "#featured"
-    );
-
-
-  if (featured) {
-
-    featured.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-
-  }
-
-
-  if (
-    typeof toast ===
-    "function"
-  ) {
-
-    toast(
-      list.length
-        ? `${offer.title} — ${list.length}টি পণ্য`
-        : "এই অফারে কোনো পণ্য নেই"
-    );
-
-  }
-};
-
-
-/* Engine reference update */
-window.KP_OFFER_ENGINE.renderProducts =
-  window.renderProducts;
-/* ======================================================
-   CART + CHECKOUT OFFER PRICE INTEGRATION
-====================================================== */
-
-function kpOfferCartHTML() {
-
-  if (!cart.length) {
-    return `
-      <h2>আপনার কার্ট</h2>
-      <div class="empty">
-        কার্ট এখন খালি।<br><br>
-        পছন্দের পণ্য কার্টে যোগ করুন।
-      </div>
-    `;
-  }
-
-  const calc = kpCalculateCart(cart);
-
-  const rows = calc.lines.map(line => {
-
-    const p = line.product;
-    const original = line.originalUnitPrice;
-    const finalPrice = line.unitPrice;
-
-    const discounted = finalPrice < original;
-
-    return `
-      <div class="cart-item">
-
-        <img src="${p.img}">
-
-        <div class="grow">
-
-          <b>${p.name}</b>
-
-          <div>
-            <span>
-              ${kpMoney(finalPrice)}
-            </span>
-
-            ${
-              discounted
-                ? `
-                  <span
-                    style="
-                      text-decoration:line-through;
-                      color:#999;
-                      margin-left:6px;
-                    "
-                  >
-                    ${kpMoney(original)}
-                  </span>
-                `
-                : ""
-            }
-          </div>
-
-          ${
-            discounted
-              ? `
-                <small
-                  style="
-                    color:#078b5b;
-                    font-weight:700;
-                  "
-                >
-                  ${kpOfferDiscountText(
-                    kpProductOffers(p)[0]
-                  )}
-                </small>
-              `
-              : ""
-          }
-
-          <div class="qty">
-
-            <button
-              onclick="changeQty(${p.id},-1)"
-            >
-              −
-            </button>
-
-            ${line.qty}
-
-            <button
-              onclick="changeQty(${p.id},1)"
-            >
-              +
-            </button>
-
-          </div>
-
-        </div>
-
-        <button
-          onclick="removeCart(${p.id})"
-        >
-          ×
-        </button>
-
-      </div>
-    `;
-
-  }).join("");
-
-
-  return `
-    <h2>আপনার কার্ট</h2>
-
-    ${rows}
-
-    ${
-      calc.discount > 0
-        ? `
-          <div
-            style="
-              display:flex;
-              justify-content:space-between;
-              margin-top:12px;
-              color:#078b5b;
-              font-weight:700;
-            "
-          >
-            <span>Offer Discount</span>
-            <span>-${kpMoney(calc.discount)}</span>
-          </div>
-        `
-        : ""
-    }
-
-    <div class="panel-total">
-
-      <span>মোট</span>
-
-      <span>
-        ${kpMoney(calc.subtotal)}
-      </span>
-
-    </div>
-
-    <button
-      class="full"
-      onclick="checkout()"
-    >
-      Checkout →
-    </button>
-  `;
+      : "";
 }
-
-
-/* ======================================================
-   REPLACE CART VIEW
-====================================================== */
-
-window.cartHTML = kpOfferCartHTML;
-
-
-/* ======================================================
-   OFFER-AWARE CHECKOUT
-====================================================== */
-
-window.checkout = function() {
-
-  const calc = kpCalculateCart(cart);
-
-  document.querySelector("#panel").innerHTML = `
-
-    <button
-      class="panel-close"
-      onclick="openPanel('cart')"
-    >
-      ←
-    </button>
-
-    <h2>Checkout</h2>
-
-    <div class="field">
-      <label>নাম</label>
-      <input
-        id="coName"
-        placeholder="আপনার নাম"
-      >
-    </div>
-
-    <div class="field">
-      <label>মোবাইল</label>
-      <input
-        id="coMobile"
-        placeholder="01XXXXXXXXX"
-      >
-    </div>
-
-    <div class="field">
-      <label>ডেলিভারি ঠিকানা</label>
-
-      <textarea
-        id="coAddress"
-        rows="3"
-        placeholder="বাসা/রোড/এলাকা"
-      ></textarea>
-
-    </div>
-
-    <div class="field">
-
-      <label>Payment Method</label>
-
-      <select id="coPayment">
-
-        <option>
-          Cash on Delivery
-        </option>
-
-        <option>
-          Online Payment (পরে যুক্ত হবে)
-        </option>
-
-      </select>
-
-    </div>
-
-
-    <div class="panel-total">
-
-      <span>মূল দাম</span>
-
-      <span>
-        ${kpMoney(calc.originalSubtotal)}
-      </span>
-
-    </div>
-/* ======================================================
-   CART OFFER PRICE FIX
-====================================================== */
-
-window.cartHTML = function () {
-
-  if (!cart.length) {
-    return `
-      <h2>আপনার কার্ট</h2>
-      <div class="empty">
-        কার্ট এখন খালি।
-      </div>
-    `;
-  }
-
-  const calc = kpCalculateCart(cart);
-
-  const rows = calc.lines.map(line => {
-
-    const p = line.product;
-    const oldPrice = line.originalUnitPrice;
-    const offerPrice = line.unitPrice;
-
-    return `
-      <div class="cart-item">
-
-        <img src="${p.img}">
-
-        <div class="grow">
-
-          <b>${p.name}</b>
-
-          <div>
-            <span>${kpMoney(offerPrice)}</span>
-
-            ${
-              offerPrice < oldPrice
-                ? `
-                  <span style="
-                    text-decoration:line-through;
-                    color:#999;
-                    margin-left:6px;
-                  ">
-                    ${kpMoney(oldPrice)}
-                  </span>
-                `
-                : ""
-            }
-          </div>
-
-          ${
-            offerPrice < oldPrice
-              ? `
-                <small style="
-                  color:#078b5b;
-                  font-weight:700;
-                ">
-                  ${kpOfferDiscountText(
-                    kpProductOffers(p)[0]
-                  )}
-                </small>
-              `
-              : ""
-          }
-
-          <div class="qty">
-            <button onclick="changeQty(${p.id},-1)">−</button>
-            ${line.qty}
-            <button onclick="changeQty(${p.id},1)">+</button>
-          </div>
-
-        </div>
-
-        <button onclick="removeCart(${p.id})">×</button>
-
-      </div>
-    `;
-  }).join("");
-
-  return `
-    <h2>আপনার কার্ট</h2>
-
-    ${rows}
-
-    ${
-      calc.discount > 0
-        ? `
-          <div style="
-            display:flex;
-            justify-content:space-between;
-            color:#078b5b;
-            font-weight:700;
-            margin-top:12px;
-          ">
-            <span>Offer Discount</span>
-            <span>-${kpMoney(calc.discount)}</span>
-          </div>
-        `
-        : ""
-    }
-
-    <div class="panel-total">
-      <span>মোট</span>
-      <span>${kpMoney(calc.subtotal)}</span>
-    </div>
-
-    <button
-      class="full"
-      onclick="checkout()"
-    >
-      Checkout →
-    </button>
-  `;
-};
-
-
-/* ======================================================
-   CHECKOUT OFFER PRICE
-====================================================== */
-
-window.checkout = function () {
-
-  const calc = kpCalculateCart(cart);
-
-  document.querySelector("#panel").innerHTML = `
-
-    <button
-      class="panel-close"
-      onclick="openPanel('cart')"
-    >
-      ←
-    </button>
-
-    <h2>Checkout</h2>
-
-    <div class="field">
-      <label>নাম</label>
-      <input id="coName" placeholder="আপনার নাম">
-    </div>
-
-    <div class="field">
-      <label>মোবাইল</label>
-      <input id="coMobile" placeholder="01XXXXXXXXX">
-    </div>
-
-    <div class="field">
-      <label>ডেলিভারি ঠিকানা</label>
-      <textarea
-        id="coAddress"
-        rows="3"
-        placeholder="বাসা/রোড/এলাকা"
-      ></textarea>
-    </div>
-
-    <div class="panel-total">
-      <span>মূল দাম</span>
-      <span>${kpMoney(calc.originalSubtotal)}</span>
-    </div>
-
-    <div class="panel-total">
-      <span>Offer Discount</span>
-      <span style="color:#078b5b">
-        -${kpMoney(calc.discount)}
-      </span>
-    </div>
-
-    <div class="panel-total">
-      <span>Product Total</span>
-      <span>${kpMoney(calc.subtotal)}</span>
-    </div>
-
-    <button
-      class="full"
-      onclick="placeDemoOrder()"
-    >
-      Order Confirm
-    </button>
-  `;
-};
-
-
-/* ======================================================
-   ORDER TOTAL
-====================================================== */
-
-window.placeDemoOrder = async function () {
-
-  const name =
-    document.querySelector("#coName").value.trim();
-
-  const mobile =
-    document.querySelector("#coMobile").value.trim();
-
-  const address =
-    document.querySelector("#coAddress").value.trim();
-
-  if (!name || !mobile || !address) {
-    toast("নাম, মোবাইল ও ঠিকানা দিন");
-    return;
-  }
-
-  const calc = kpCalculateCart(cart);
-
-  const items = cart.map(x => {
-
-    const p =
-      products.find(p => p.id === x.id);
-
-    return {
-      productId: x.id,
-      quantity: x.qty,
-      unitPrice: kpOfferPrice(p)
-    };
-
-  });
-
-  if (API_BASE && kpToken) {
-
-    try {
-
-      const result =
-        await apiCreateOrder({
-          customerName: name,
-          mobile,
-          address,
-          paymentMethod: "COD",
-          items
-        });
-
-      cart = [];
-      save();
-
-      document.querySelector("#panel").innerHTML = `
-        <button
-          class="panel-close"
-          onclick="closePanel()"
-        >
-          ×
-        </button>
-
-        <h2>অর্ডার গ্রহণ করা হয়েছে ✓</h2>
-
-        <p>Order ID:</p>
-
-        <h2>
-          ${result.orderId || result.id}
-        </h2>
-
-        <p style="color:#078b5b;font-weight:700">
-          মোট: ${kpMoney(calc.subtotal)}
-        </p>
-
-        <button
-          class="full"
-          onclick="closePanel()"
-        >
-          ঠিক আছে
-        </button>
-      `;
-
-      return;
-
-    } catch(e) {
-
-      toast("Server order তৈরি হয়নি");
-      return;
-
-    }
-
-  }
-
-  toast("Order তৈরি হয়েছে");
-
-  cart = [];
-  save();
-
-  closePanel();
-};
