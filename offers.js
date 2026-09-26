@@ -2527,3 +2527,281 @@ window.checkout = function() {
       </span>
 
     </div>
+/* ======================================================
+   CART OFFER PRICE FIX
+====================================================== */
+
+window.cartHTML = function () {
+
+  if (!cart.length) {
+    return `
+      <h2>আপনার কার্ট</h2>
+      <div class="empty">
+        কার্ট এখন খালি।
+      </div>
+    `;
+  }
+
+  const calc = kpCalculateCart(cart);
+
+  const rows = calc.lines.map(line => {
+
+    const p = line.product;
+    const oldPrice = line.originalUnitPrice;
+    const offerPrice = line.unitPrice;
+
+    return `
+      <div class="cart-item">
+
+        <img src="${p.img}">
+
+        <div class="grow">
+
+          <b>${p.name}</b>
+
+          <div>
+            <span>${kpMoney(offerPrice)}</span>
+
+            ${
+              offerPrice < oldPrice
+                ? `
+                  <span style="
+                    text-decoration:line-through;
+                    color:#999;
+                    margin-left:6px;
+                  ">
+                    ${kpMoney(oldPrice)}
+                  </span>
+                `
+                : ""
+            }
+          </div>
+
+          ${
+            offerPrice < oldPrice
+              ? `
+                <small style="
+                  color:#078b5b;
+                  font-weight:700;
+                ">
+                  ${kpOfferDiscountText(
+                    kpProductOffers(p)[0]
+                  )}
+                </small>
+              `
+              : ""
+          }
+
+          <div class="qty">
+            <button onclick="changeQty(${p.id},-1)">−</button>
+            ${line.qty}
+            <button onclick="changeQty(${p.id},1)">+</button>
+          </div>
+
+        </div>
+
+        <button onclick="removeCart(${p.id})">×</button>
+
+      </div>
+    `;
+  }).join("");
+
+  return `
+    <h2>আপনার কার্ট</h2>
+
+    ${rows}
+
+    ${
+      calc.discount > 0
+        ? `
+          <div style="
+            display:flex;
+            justify-content:space-between;
+            color:#078b5b;
+            font-weight:700;
+            margin-top:12px;
+          ">
+            <span>Offer Discount</span>
+            <span>-${kpMoney(calc.discount)}</span>
+          </div>
+        `
+        : ""
+    }
+
+    <div class="panel-total">
+      <span>মোট</span>
+      <span>${kpMoney(calc.subtotal)}</span>
+    </div>
+
+    <button
+      class="full"
+      onclick="checkout()"
+    >
+      Checkout →
+    </button>
+  `;
+};
+
+
+/* ======================================================
+   CHECKOUT OFFER PRICE
+====================================================== */
+
+window.checkout = function () {
+
+  const calc = kpCalculateCart(cart);
+
+  document.querySelector("#panel").innerHTML = `
+
+    <button
+      class="panel-close"
+      onclick="openPanel('cart')"
+    >
+      ←
+    </button>
+
+    <h2>Checkout</h2>
+
+    <div class="field">
+      <label>নাম</label>
+      <input id="coName" placeholder="আপনার নাম">
+    </div>
+
+    <div class="field">
+      <label>মোবাইল</label>
+      <input id="coMobile" placeholder="01XXXXXXXXX">
+    </div>
+
+    <div class="field">
+      <label>ডেলিভারি ঠিকানা</label>
+      <textarea
+        id="coAddress"
+        rows="3"
+        placeholder="বাসা/রোড/এলাকা"
+      ></textarea>
+    </div>
+
+    <div class="panel-total">
+      <span>মূল দাম</span>
+      <span>${kpMoney(calc.originalSubtotal)}</span>
+    </div>
+
+    <div class="panel-total">
+      <span>Offer Discount</span>
+      <span style="color:#078b5b">
+        -${kpMoney(calc.discount)}
+      </span>
+    </div>
+
+    <div class="panel-total">
+      <span>Product Total</span>
+      <span>${kpMoney(calc.subtotal)}</span>
+    </div>
+
+    <button
+      class="full"
+      onclick="placeDemoOrder()"
+    >
+      Order Confirm
+    </button>
+  `;
+};
+
+
+/* ======================================================
+   ORDER TOTAL
+====================================================== */
+
+window.placeDemoOrder = async function () {
+
+  const name =
+    document.querySelector("#coName").value.trim();
+
+  const mobile =
+    document.querySelector("#coMobile").value.trim();
+
+  const address =
+    document.querySelector("#coAddress").value.trim();
+
+  if (!name || !mobile || !address) {
+    toast("নাম, মোবাইল ও ঠিকানা দিন");
+    return;
+  }
+
+  const calc = kpCalculateCart(cart);
+
+  const items = cart.map(x => {
+
+    const p =
+      products.find(p => p.id === x.id);
+
+    return {
+      productId: x.id,
+      quantity: x.qty,
+      unitPrice: kpOfferPrice(p)
+    };
+
+  });
+
+  if (API_BASE && kpToken) {
+
+    try {
+
+      const result =
+        await apiCreateOrder({
+          customerName: name,
+          mobile,
+          address,
+          paymentMethod: "COD",
+          items
+        });
+
+      cart = [];
+      save();
+
+      document.querySelector("#panel").innerHTML = `
+        <button
+          class="panel-close"
+          onclick="closePanel()"
+        >
+          ×
+        </button>
+
+        <h2>অর্ডার গ্রহণ করা হয়েছে ✓</h2>
+
+        <p>Order ID:</p>
+
+        <h2>
+          ${result.orderId || result.id}
+        </h2>
+
+        <p style="color:#078b5b;font-weight:700">
+          মোট: ${kpMoney(calc.subtotal)}
+        </p>
+
+        <button
+          class="full"
+          onclick="closePanel()"
+        >
+          ঠিক আছে
+        </button>
+      `;
+
+      return;
+
+    } catch(e) {
+
+      toast("Server order তৈরি হয়নি");
+      return;
+
+    }
+
+  }
+
+  toast("Order তৈরি হয়েছে");
+
+  cart = [];
+  save();
+
+  closePanel();
+};
