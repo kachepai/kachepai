@@ -2110,3 +2110,234 @@ function(offerId) {
 /* Engine reference update */
 window.KP_OFFER_ENGINE.renderProducts =
   window.renderProducts;
+/* ======================================================
+   CART + CHECKOUT OFFER PRICE INTEGRATION
+====================================================== */
+
+function kpOfferCartHTML() {
+
+  if (!cart.length) {
+    return `
+      <h2>আপনার কার্ট</h2>
+      <div class="empty">
+        কার্ট এখন খালি।<br><br>
+        পছন্দের পণ্য কার্টে যোগ করুন।
+      </div>
+    `;
+  }
+
+  const calc = kpCalculateCart(cart);
+
+  const rows = calc.lines.map(line => {
+
+    const p = line.product;
+    const original = line.originalUnitPrice;
+    const finalPrice = line.unitPrice;
+
+    const discounted = finalPrice < original;
+
+    return `
+      <div class="cart-item">
+
+        <img src="${p.img}">
+
+        <div class="grow">
+
+          <b>${p.name}</b>
+
+          <div>
+            <span>
+              ${kpMoney(finalPrice)}
+            </span>
+
+            ${
+              discounted
+                ? `
+                  <span
+                    style="
+                      text-decoration:line-through;
+                      color:#999;
+                      margin-left:6px;
+                    "
+                  >
+                    ${kpMoney(original)}
+                  </span>
+                `
+                : ""
+            }
+          </div>
+
+          ${
+            discounted
+              ? `
+                <small
+                  style="
+                    color:#078b5b;
+                    font-weight:700;
+                  "
+                >
+                  ${kpOfferDiscountText(
+                    kpProductOffers(p)[0]
+                  )}
+                </small>
+              `
+              : ""
+          }
+
+          <div class="qty">
+
+            <button
+              onclick="changeQty(${p.id},-1)"
+            >
+              −
+            </button>
+
+            ${line.qty}
+
+            <button
+              onclick="changeQty(${p.id},1)"
+            >
+              +
+            </button>
+
+          </div>
+
+        </div>
+
+        <button
+          onclick="removeCart(${p.id})"
+        >
+          ×
+        </button>
+
+      </div>
+    `;
+
+  }).join("");
+
+
+  return `
+    <h2>আপনার কার্ট</h2>
+
+    ${rows}
+
+    ${
+      calc.discount > 0
+        ? `
+          <div
+            style="
+              display:flex;
+              justify-content:space-between;
+              margin-top:12px;
+              color:#078b5b;
+              font-weight:700;
+            "
+          >
+            <span>Offer Discount</span>
+            <span>-${kpMoney(calc.discount)}</span>
+          </div>
+        `
+        : ""
+    }
+
+    <div class="panel-total">
+
+      <span>মোট</span>
+
+      <span>
+        ${kpMoney(calc.subtotal)}
+      </span>
+
+    </div>
+
+    <button
+      class="full"
+      onclick="checkout()"
+    >
+      Checkout →
+    </button>
+  `;
+}
+
+
+/* ======================================================
+   REPLACE CART VIEW
+====================================================== */
+
+window.cartHTML = kpOfferCartHTML;
+
+
+/* ======================================================
+   OFFER-AWARE CHECKOUT
+====================================================== */
+
+window.checkout = function() {
+
+  const calc = kpCalculateCart(cart);
+
+  document.querySelector("#panel").innerHTML = `
+
+    <button
+      class="panel-close"
+      onclick="openPanel('cart')"
+    >
+      ←
+    </button>
+
+    <h2>Checkout</h2>
+
+    <div class="field">
+      <label>নাম</label>
+      <input
+        id="coName"
+        placeholder="আপনার নাম"
+      >
+    </div>
+
+    <div class="field">
+      <label>মোবাইল</label>
+      <input
+        id="coMobile"
+        placeholder="01XXXXXXXXX"
+      >
+    </div>
+
+    <div class="field">
+      <label>ডেলিভারি ঠিকানা</label>
+
+      <textarea
+        id="coAddress"
+        rows="3"
+        placeholder="বাসা/রোড/এলাকা"
+      ></textarea>
+
+    </div>
+
+    <div class="field">
+
+      <label>Payment Method</label>
+
+      <select id="coPayment">
+
+        <option>
+          Cash on Delivery
+        </option>
+
+        <option>
+          Online Payment (পরে যুক্ত হবে)
+        </option>
+
+      </select>
+
+    </div>
+
+
+    <div class="panel-total">
+
+      <span>মূল দাম</span>
+
+      <span>
+        ${kpMoney(calc.originalSubtotal)}
+      </span>
+
+    </div>
