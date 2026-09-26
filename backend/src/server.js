@@ -20,7 +20,12 @@ app.use(helmet());
 app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || "change-this-secret";
+const JWT_SECRET =
+  process.env.JWT_SECRET || "change-this-secret";
+
+/* ======================================================
+   AUTH
+====================================================== */
 
 function createToken(user) {
   return jwt.sign(
@@ -29,12 +34,15 @@ function createToken(user) {
       mobile: user.mobile
     },
     JWT_SECRET,
-    { expiresIn: "30d" }
+    {
+      expiresIn: "30d"
+    }
   );
 }
 
 function getTokenFromRequest(req) {
-  const auth = req.headers.authorization || "";
+  const auth =
+    req.headers.authorization || "";
 
   if (!auth.startsWith("Bearer ")) {
     return null;
@@ -45,7 +53,8 @@ function getTokenFromRequest(req) {
 
 async function authUser(req, res, next) {
   try {
-    const token = getTokenFromRequest(req);
+    const token =
+      getTokenFromRequest(req);
 
     if (!token) {
       return res.status(401).json({
@@ -53,11 +62,18 @@ async function authUser(req, res, next) {
       });
     }
 
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload =
+      jwt.verify(
+        token,
+        JWT_SECRET
+      );
 
-    const user = await prisma.user.findUnique({
-      where: { id: Number(payload.id) }
-    });
+    const user =
+      await prisma.user.findUnique({
+        where: {
+          id: Number(payload.id)
+        }
+      });
 
     if (!user) {
       return res.status(401).json({
@@ -66,19 +82,31 @@ async function authUser(req, res, next) {
     }
 
     req.user = user;
+
     next();
+
   } catch (error) {
+
     return res.status(401).json({
       error: "Invalid or expired login"
     });
   }
 }
 
+/* ======================================================
+   HOME
+====================================================== */
+
 app.get("/", (req, res) => {
   res.json({
-    message: "Kachepai Backend is running!"
+    message:
+      "Kachepai Backend is running!"
   });
 });
+
+/* ======================================================
+   HEALTH
+====================================================== */
 
 app.get("/health", (req, res) => {
   res.json({
@@ -86,124 +114,363 @@ app.get("/health", (req, res) => {
   });
 });
 
-app.post("/api/auth/register", async (req, res) => {
-  try {
-    const { mobile, password, name } = req.body;
+/* ======================================================
+   REGISTER
+====================================================== */
 
-    if (!mobile || !password) {
-      return res.status(400).json({
-        error: "Mobile number and password are required"
-      });
-    }
+app.post(
+  "/api/auth/register",
+  async (req, res) => {
 
-    if (password.length < 6) {
-      return res.status(400).json({
-        error: "Password must be at least 6 characters"
-      });
-    }
+    try {
 
-    const existingUser = await prisma.user.findUnique({
-      where: { mobile }
-    });
-
-    if (existingUser) {
-      return res.status(409).json({
-        error: "This mobile number is already registered"
-      });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 12);
-
-    const user = await prisma.user.create({
-      data: {
+      const {
         mobile,
-        name: name || null,
-        passwordHash,
-        mobileVerified: false
+        password,
+        name
+      } = req.body;
+
+      if (!mobile || !password) {
+        return res.status(400).json({
+          error:
+            "Mobile number and password are required"
+        });
       }
-    });
 
-    const token = createToken(user);
-
-    res.status(201).json({
-      message: "Account created successfully",
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        mobile: user.mobile
+      if (password.length < 6) {
+        return res.status(400).json({
+          error:
+            "Password must be at least 6 characters"
+        });
       }
-    });
-  } catch (error) {
-    console.error(error);
 
-    res.status(500).json({
-      error: "Could not create account"
-    });
+      const existingUser =
+        await prisma.user.findUnique({
+          where: {
+            mobile
+          }
+        });
+
+      if (existingUser) {
+        return res.status(409).json({
+          error:
+            "This mobile number is already registered"
+        });
+      }
+
+      const passwordHash =
+        await bcrypt.hash(
+          password,
+          12
+        );
+
+      const user =
+        await prisma.user.create({
+          data: {
+            mobile,
+            name: name || null,
+            passwordHash,
+            mobileVerified: false
+          }
+        });
+
+      const token =
+        createToken(user);
+
+      res.status(201).json({
+        message:
+          "Account created successfully",
+
+        token,
+
+        user: {
+          id: user.id,
+          name: user.name,
+          mobile: user.mobile
+        }
+      });
+
+    } catch (error) {
+
+      console.error(
+        "REGISTER ERROR:",
+        error
+      );
+
+      res.status(500).json({
+        error:
+          "Could not create account"
+      });
+    }
   }
-});
+);
 
-app.post("/api/auth/login", async (req, res) => {
-  try {
-    const { mobile, password } = req.body;
+/* ======================================================
+   LOGIN
+====================================================== */
 
-    if (!mobile || !password) {
-      return res.status(400).json({
-        error: "Mobile number and password are required"
+app.post(
+  "/api/auth/login",
+  async (req, res) => {
+
+    try {
+
+      const {
+        mobile,
+        password
+      } = req.body;
+
+      if (!mobile || !password) {
+        return res.status(400).json({
+          error:
+            "Mobile number and password are required"
+        });
+      }
+
+      const user =
+        await prisma.user.findUnique({
+          where: {
+            mobile
+          }
+        });
+
+      if (
+        !user ||
+        !user.passwordHash
+      ) {
+        return res.status(401).json({
+          error:
+            "Invalid mobile number or password"
+        });
+      }
+
+      const validPassword =
+        await bcrypt.compare(
+          password,
+          user.passwordHash
+        );
+
+      if (!validPassword) {
+        return res.status(401).json({
+          error:
+            "Invalid mobile number or password"
+        });
+      }
+
+      const token =
+        createToken(user);
+
+      res.json({
+        message:
+          "Login successful",
+
+        token,
+
+        user: {
+          id: user.id,
+          name: user.name,
+          mobile: user.mobile
+        }
+      });
+
+    } catch (error) {
+
+      console.error(
+        "LOGIN ERROR:",
+        error
+      );
+
+      res.status(500).json({
+        error:
+          "Login failed"
       });
     }
+  }
+);
 
-    const user = await prisma.user.findUnique({
-      where: { mobile }
-    });
+/* ======================================================
+   CURRENT USER
+====================================================== */
 
-    if (!user || !user.passwordHash) {
-      return res.status(401).json({
-        error: "Invalid mobile number or password"
-      });
-    }
-
-    const validPassword = await bcrypt.compare(
-      password,
-      user.passwordHash
-    );
-
-    if (!validPassword) {
-      return res.status(401).json({
-        error: "Invalid mobile number or password"
-      });
-    }
-
-    const token = createToken(user);
+app.get(
+  "/api/me",
+  authUser,
+  async (req, res) => {
 
     res.json({
-      message: "Login successful",
-      token,
       user: {
-        id: user.id,
-        name: user.name,
-        mobile: user.mobile
+        id: req.user.id,
+        name: req.user.name,
+        mobile: req.user.mobile
       }
     });
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      error: "Login failed"
-    });
   }
-});
+);
 
-app.get("/api/me", authUser, async (req, res) => {
-  res.json({
-    user: {
-      id: req.user.id,
-      name: req.user.name,
-      mobile: req.user.mobile
+/* ======================================================
+   CREATE ORDERS TABLE
+====================================================== */
+
+async function ensureOrdersTable() {
+
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "Order" (
+      "id" SERIAL PRIMARY KEY,
+      "userId" INTEGER NOT NULL,
+      "customerName" TEXT NOT NULL,
+      "mobile" TEXT NOT NULL,
+      "address" TEXT NOT NULL,
+      "paymentMethod" TEXT NOT NULL DEFAULT 'COD',
+      "items" JSONB NOT NULL,
+      "total" DOUBLE PRECISION NOT NULL DEFAULT 0,
+      "status" TEXT NOT NULL DEFAULT 'PENDING',
+      "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+}
+
+/* ======================================================
+   CREATE ORDER
+====================================================== */
+
+app.post(
+  "/api/orders",
+  authUser,
+  async (req, res) => {
+
+    try {
+
+      const {
+        customerName,
+        mobile,
+        address,
+        paymentMethod,
+        items
+      } = req.body;
+
+      if (
+        !customerName ||
+        !mobile ||
+        !address
+      ) {
+        return res.status(400).json({
+          error:
+            "Customer name, mobile and address are required"
+        });
+      }
+
+      if (
+        !Array.isArray(items) ||
+        items.length === 0
+      ) {
+        return res.status(400).json({
+          error:
+            "Order items are required"
+        });
+      }
+
+      await ensureOrdersTable();
+
+      let total = 0;
+
+      for (const item of items) {
+
+        const quantity =
+          Math.max(
+            1,
+            Number(item.quantity || 1)
+          );
+
+        const unitPrice =
+          Math.max(
+            0,
+            Number(item.unitPrice || 0)
+          );
+
+        total +=
+          quantity * unitPrice;
+      }
+
+      const safePaymentMethod =
+        paymentMethod || "COD";
+
+      const result =
+        await prisma.$queryRaw`
+          INSERT INTO "Order"
+          (
+            "userId",
+            "customerName",
+            "mobile",
+            "address",
+            "paymentMethod",
+            "items",
+            "total",
+            "status"
+          )
+          VALUES
+          (
+            ${req.user.id},
+            ${customerName},
+            ${mobile},
+            ${address},
+            ${safePaymentMethod},
+            ${JSON.stringify(items)}::jsonb,
+            ${total},
+            'PENDING'
+          )
+          RETURNING
+            "id",
+            "total",
+            "status",
+            "createdAt"
+        `;
+
+      const order =
+        result[0];
+
+      res.status(201).json({
+        message:
+          "Order created successfully",
+
+        orderId:
+          "KP-" + order.id,
+
+        id: order.id,
+
+        total:
+          Number(order.total),
+
+        status:
+          order.status,
+
+        createdAt:
+          order.createdAt
+      });
+
+    } catch (error) {
+
+      console.error(
+        "ORDER ERROR:",
+        error
+      );
+
+      res.status(500).json({
+        error:
+          "Could not create order"
+      });
     }
-  });
-});
+  }
+);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+/* ======================================================
+   START SERVER
+====================================================== */
+
+app.listen(
+  PORT,
+  () => {
+    console.log(
+      `Server running on port ${PORT}`
+    );
+  }
+);
