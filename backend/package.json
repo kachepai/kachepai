@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "postinstall": "prisma generate && prisma migrate deploy",
+
+    "postinstall": "prisma generate && node prisma/repair-migration.js && prisma migrate deploy",
+
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:status": "prisma migrate status",
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
