@@ -175,32 +175,66 @@ function cartHTML(){
     return `<h2>আপনার কার্ট</h2>
     <div class="empty">কার্ট এখন খালি।<br><br>পছন্দের পণ্য কার্টে যোগ করুন।</div>`;
 
-  const rows=cart.map(x=>{
-    const p=products.find(p=>p.id===x.id);
+  const calc=kpCalculateCart(cart);
+
+  const rows=calc.lines.map(line=>{
+    const p=line.product;
+    const original=line.originalUnitPrice;
+    const finalPrice=line.unitPrice;
+
     return `<div class="cart-item">
       <img src="${p.img}">
       <div class="grow">
         <b>${p.name}</b>
-        <div>${money(p.price)}</div>
+
+        <div>
+          ${kpMoney(finalPrice)}
+
+          ${
+            finalPrice<original
+              ? `<span style="text-decoration:line-through;color:#999;margin-left:6px">
+                  ${kpMoney(original)}
+                </span>`
+              : ""
+          }
+        </div>
+
+        ${
+          finalPrice<original
+            ? `<small style="color:#078b5b;font-weight:700">
+                ${kpOfferDiscountText(kpProductOffers(p)[0])}
+              </small>`
+            : ""
+        }
+
         <div class="qty">
           <button onclick="changeQty(${p.id},-1)">−</button>
-          ${x.qty}
+          ${line.qty}
           <button onclick="changeQty(${p.id},1)">+</button>
         </div>
       </div>
+
       <button onclick="removeCart(${p.id})">×</button>
     </div>`;
   }).join("");
 
-  const total=cart.reduce(
-    (s,x)=>s+products.find(p=>p.id===x.id).price*x.qty,0
-  );
-
   return `<h2>আপনার কার্ট</h2>
     ${rows}
+
+    ${
+      calc.discount>0
+        ? `<div style="display:flex;justify-content:space-between;color:#078b5b;font-weight:700">
+            <span>Offer Discount</span>
+            <span>-${kpMoney(calc.discount)}</span>
+          </div>`
+        : ""
+    }
+
     <div class="panel-total">
-      <span>মোট</span><span>${money(total)}</span>
+      <span>মোট</span>
+      <span>${kpMoney(calc.subtotal)}</span>
     </div>
+
     <button class="full" onclick="checkout()">Checkout →</button>`;
 }
 
