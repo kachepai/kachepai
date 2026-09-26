@@ -1856,3 +1856,257 @@ document.addEventListener(
 
   }
 );
+/* ======================================================
+   OFFER PRODUCT VIEW FIX
+====================================================== */
+
+function kpOfferProductCard(p) {
+
+  const original = Number(p.price || 0);
+  const finalPrice = kpOfferPrice(p);
+
+  const discounted =
+    finalPrice < original;
+
+  const offer =
+    kpProductOffers(p)[0];
+
+  const badge =
+    discounted
+      ? kpOfferDiscountText(offer)
+      : (p.badge || "");
+
+  return `
+    <article class="product">
+
+      <div class="product-image">
+
+        <img
+          src="${p.img}"
+          alt="${p.name}"
+          loading="lazy"
+        >
+
+        <span class="badge">
+          ${badge}
+        </span>
+
+        <button
+          class="heart"
+          onclick="toggleWishlist(${p.id})"
+        >
+          ${
+            wishlist.includes(p.id)
+              ? "♥"
+              : "♡"
+          }
+        </button>
+
+      </div>
+
+
+      <div class="product-info">
+
+        <small>
+          ${p.cat}
+        </small>
+
+
+        <div class="product-name">
+          ${p.name}
+        </div>
+
+
+        <div>
+          <span class="rating">
+            ${p.rating}
+          </span>
+        </div>
+
+
+        <div>
+
+          <span class="price">
+            ${kpMoney(finalPrice)}
+          </span>
+
+          ${
+            discounted
+              ? `
+                <span class="old">
+                  ${kpMoney(original)}
+                </span>
+              `
+              : (
+                  p.old
+                    ? `
+                      <span class="old">
+                        ${kpMoney(p.old)}
+                      </span>
+                    `
+                    : ""
+                )
+          }
+
+        </div>
+
+
+        ${
+          discounted
+            ? `
+              <small
+                style="
+                  display:block;
+                  margin-top:4px;
+                  color:#078b5b;
+                  font-weight:700;
+                "
+              >
+                ${kpOfferDiscountText(offer)}
+              </small>
+            `
+            : ""
+        }
+
+
+        <button
+          class="add"
+          onclick="addCart(${p.id})"
+        >
+          কার্টে যোগ করুন
+        </button>
+
+      </div>
+
+    </article>
+  `;
+}
+
+
+/* ======================================================
+   OFFER-AWARE PRODUCT RENDER
+====================================================== */
+
+window.renderProducts = function(list) {
+
+  const box =
+    document.querySelector(
+      "#productsGrid"
+    );
+
+  if (!box) return;
+
+
+  const safeList =
+    Array.isArray(list)
+      ? list
+      : [];
+
+
+  const sorted =
+    kpSortProductsWithOffers(
+      safeList
+    );
+
+
+  box.innerHTML =
+    sorted.length
+
+      ? sorted
+          .map(
+            kpOfferProductCard
+          )
+          .join("")
+
+      : `
+        <div class="empty">
+          কোনো পণ্য পাওয়া যায়নি।
+        </div>
+      `;
+};
+
+
+/* ======================================================
+   OFFER BUTTON → ONLY THAT OFFER'S PRODUCTS
+====================================================== */
+
+window.kpShowOfferProducts =
+function(offerId) {
+
+  const offer =
+    kpOffers.find(
+      o =>
+        String(o.id) ===
+        String(offerId)
+    );
+
+
+  if (
+    !offer ||
+    typeof products ===
+      "undefined"
+  ) {
+
+    if (
+      typeof toast ===
+      "function"
+    ) {
+      toast(
+        "এই অফারের পণ্য পাওয়া যায়নি"
+      );
+    }
+
+    return;
+  }
+
+
+  const list =
+    products.filter(
+      product =>
+        kpOfferMatchesProduct(
+          offer,
+          product
+        )
+    );
+
+
+  /* শুধুমাত্র এই offer-এর product */
+  window.renderProducts(
+    list
+  );
+
+
+  const featured =
+    document.querySelector(
+      "#featured"
+    );
+
+
+  if (featured) {
+
+    featured.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+
+  }
+
+
+  if (
+    typeof toast ===
+    "function"
+  ) {
+
+    toast(
+      list.length
+        ? `${offer.title} — ${list.length}টি পণ্য`
+        : "এই অফারে কোনো পণ্য নেই"
+    );
+
+  }
+};
+
+
+/* Engine reference update */
+window.KP_OFFER_ENGINE.renderProducts =
+  window.renderProducts;
