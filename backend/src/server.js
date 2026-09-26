@@ -432,7 +432,7 @@ app.post(
         message:
           "Order created successfully",
 
-        orderId:
+        
           orderId:
   "KCP-" +
   new Date(order.createdAt)
