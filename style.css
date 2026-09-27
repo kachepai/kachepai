@@ -1702,3 +1702,313 @@ footer a:hover{
     font-size:8px;
   }
    }
+/* =========================================================
+   KACHEPAI — DARK THEME
+   ========================================================= */
+
+body{
+  background:#0b1110;
+  color:#e8f1ed;
+}
+
+header,
+.header-main,
+nav{
+  background:#101816;
+  color:#e8f1ed;
+}
+
+.brand,
+nav button{
+  color:#e8f1ed;
+}
+
+.brand small,
+.footer-brand small{
+  color:#8b9b94;
+}
+
+.header-main,
+nav{
+  border-color:#24322d;
+}
+
+.search{
+  background:#18221f;
+  border-color:#2a3933;
+}
+
+.search input{
+  color:#edf7f2;
+}
+
+.search input::placeholder{
+  color:#788a82;
+}
+
+.header-actions button{
+  background:#18221f;
+  border-color:#2a3933;
+  color:#dce9e4;
+}
+
+.header-actions button:hover{
+  background:#21302a;
+}
+
+nav a{
+  color:#9aaba3;
+}
+
+nav a:hover{
+  color:#35c98e;
+}
+
+
+/* Sections */
+
+.section-title h2{
+  color:#edf6f2;
+}
+
+.section-title p{
+  color:#899991;
+}
+
+.link{
+  color:#35c98e;
+}
+
+
+/* Quick benefits */
+
+.quick{
+  background:#111a17;
+  border-color:#26352f;
+  box-shadow:0 5px 18px rgba(0,0,0,.22);
+}
+
+.quick div{
+  border-color:#26352f;
+}
+
+.quick span{
+  color:#899991;
+}
+
+
+/* Categories */
+
+.category{
+  background:#111a17;
+  border-color:#26352f;
+  color:#e5efeb;
+}
+
+.category:hover{
+  border-color:#356d57;
+  box-shadow:0 10px 25px rgba(0,0,0,.28);
+}
+
+
+/* Offers */
+
+.kp-offer-card,
+.kp-upcoming,
+.kp-no-offer{
+  background:#111a17;
+  border-color:#26352f;
+  color:#e5efeb;
+}
+
+.kp-offer-icon{
+  background:#19382c;
+}
+
+.kp-offer-copy p,
+.kp-upcoming small{
+  color:#899991;
+}
+
+.kp-offer-tag,
+.kp-offer-copy strong{
+  color:#35c98e;
+}
+
+
+/* Products */
+
+.product{
+  background:#111a17;
+  border-color:#26352f;
+  color:#e5efeb;
+}
+
+.product:hover{
+  border-color:#356d57;
+  box-shadow:0 12px 28px rgba(0,0,0,.3);
+}
+
+.product-image,
+.product img{
+  background:#18221f;
+}
+
+.product-price{
+  color:#35c98e;
+}
+
+.product-old-price{
+  color:#718078;
+}
+
+.product-actions button{
+  background:#18221f;
+  border-color:#2b3b34;
+  color:#dce9e4;
+}
+
+.product-actions button:hover{
+  background:#21302a;
+}
+
+
+/* Loading / empty */
+
+.loading,
+.error-box,
+.empty-state{
+  background:#111a17;
+  border-color:#26352f;
+  color:#9aa9a2;
+}
+
+.error-box{
+  background:#211714;
+  border-color:#4a2d27;
+}
+
+
+/* Banner background */
+
+.kp-banner-wrap{
+  background:#18221f;
+}
+
+
+/* Panels / Login / Cart */
+
+.overlay{
+  background:rgba(0,0,0,.72);
+}
+
+.panel{
+  background:#101816;
+  color:#e8f1ed;
+}
+
+.panel h2,
+.panel h3{
+  color:#edf6f2;
+}
+
+.panel input,
+.panel textarea,
+.panel select{
+  background:#18221f;
+  border-color:#2a3933;
+  color:#edf7f2;
+}
+
+.panel input::placeholder,
+.panel textarea::placeholder{
+  color:#788a82;
+}
+
+.panel input:focus,
+.panel textarea:focus,
+.panel select:focus{
+  border-color:#35c98e;
+  box-shadow:0 0 0 3px rgba(53,201,142,.12);
+}
+
+.cart-item{
+  border-color:#26352f;
+}
+
+.cart-item img{
+  background:#18221f;
+}
+
+.cart-item-info small{
+  color:#899991;
+}
+
+.cart-qty button{
+  background:#18221f;
+  border-color:#2a3933;
+  color:#e5efeb;
+}
+
+.cart-summary{
+  border-color:#26352f;
+}
+
+.cart-total{
+  color:#35c98e;
+}
+
+
+/* Form */
+
+.form-group label{
+  color:#b4c2bc;
+}
+
+.form-button{
+  background:#0d8a5d;
+}
+
+.form-button:hover{
+  background:#0fa56d;
+}
+
+
+/* Footer */
+
+footer{
+  background:#070d0b;
+  color:#dce9e4;
+}
+
+footer a{
+  color:#91a29a;
+}
+
+footer a:hover{
+  color:#fff;
+}
+
+
+/* Toast */
+
+.toast{
+  background:#e8f1ed;
+  color:#101816;
+}
+
+
+/* Mobile */
+
+@media (max-width:760px){
+
+  .quick div:nth-child(1),
+  .quick div:nth-child(2){
+    border-bottom-color:#26352f;
+  }
+
+  .quick div:nth-child(odd){
+    border-right-color:#26352f;
+  }
+
+}
