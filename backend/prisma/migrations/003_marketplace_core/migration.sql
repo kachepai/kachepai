@@ -1,4 +1,21 @@
 /* =========================================================
+   CLEANUP FROM ANY PARTIAL RUN OF MIGRATION 003
+   Safe for this migration: these tables belong to 003 only.
+========================================================= */
+
+DROP TABLE IF EXISTS
+  "OrderItem",
+  "Order",
+  "OfferCategory",
+  "OfferProduct",
+  "ProductImage",
+  "Offer",
+  "Banner",
+  "HomepageSection",
+  "Product",
+  "Category"
+CASCADE;
+/* =========================================================
    KachePai Marketplace Core
    Migration 003
    ========================================================= */
