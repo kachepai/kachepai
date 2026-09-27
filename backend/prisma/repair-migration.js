@@ -21,8 +21,8 @@ async function repairFailedMigration() {
       `Migration ${migrationName}: ${result} failed record(s) marked as rolled back.`
     );
   } catch (error) {
-    console.error("Migration repair failed:", error);
-    process.exitCode = 1;
+    // Repair is optional and must never block installation or deployment.
+    console.warn("Migration repair skipped:", error?.message || error);
   } finally {
     await prisma.$disconnect();
   }
